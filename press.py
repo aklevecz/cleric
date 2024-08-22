@@ -7,6 +7,11 @@ def duck():
     time.sleep(0.2)
     keyboard.release('x')
 
+def cast_ch():
+    keyboard.press('1')
+    time.sleep(0.2)
+    keyboard.release('1')
+
 # while True:
 #     time.sleep(0.2)
 #     keyboard.press(Key.space)

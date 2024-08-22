@@ -1,7 +1,9 @@
 log_file_path =r"C:\Users\Public\Daybreak Game Company\Installed Games\EverQuest\Logs\eqlog_Badegg_teek.txt"
 
 import time
-from press import duck         
+from press import duck, cast_ch
+from red_percentage import get_percentage_of_guy
+
 def tail_log_file(log_file_path, num_lines=10):
     with open(log_file_path, 'r') as file:
         while True:
@@ -16,9 +18,13 @@ def tail_log_file(log_file_path, num_lines=10):
                 lines = lines[-num_lines:]
             for line in lines:
                 if "Go egg" in line:
-                    print("GO EGG")
-                    duck()
-                print(line, end='')
+                    cast_ch()
+                    time.sleep(9)
+                    percentage = get_percentage_of_guy('badegg')
+                    if (percentage > 85):
+                        duck()
+                    print(f"Red progress: {percentage:.2f}%")
+                # print(line, end='')
             time.sleep(2)  # Wait for 2 seconds before reading the file again
 
 # Example usage

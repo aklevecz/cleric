@@ -155,6 +155,19 @@ def monitor_progress(name):
         
         pyautogui.sleep(0.1)
 
+def get_percentage_of_guy(name):
+    config = load_config()
+    if name not in config:
+        print(f"No bounding box named '{name}' found in the configuration.")
+        return
+    
+    bbox = config[name]
+    print(f"Monitoring progress for '{name}'")
+    
+    screenshot = capture_screen_region(bbox['left'], bbox['top'], bbox['width'], bbox['height'])
+    percentage = analyze_red_progress(screenshot)
+    return percentage
+
 def plot_progress(log_file='monitor_log.json'):
     """Plot the progress data from the JSON log file."""
     if not os.path.exists(log_file):
