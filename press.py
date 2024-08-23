@@ -2,7 +2,17 @@ from pynput.keyboard import Key, Controller
 import time
 keyboard = Controller()
 
+def sit():
+    keyboard.press(Key.ctrl)
+    keyboard.press('s')
+    time.sleep(0.2)
+    keyboard.release('s')
+    keyboard.release(Key.ctrl)
+
 def duck():
+    keyboard.press('x')
+    time.sleep(0.2)
+    keyboard.release('x')
     keyboard.press('x')
     time.sleep(0.2)
     keyboard.release('x')
