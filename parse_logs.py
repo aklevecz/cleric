@@ -4,7 +4,7 @@ import hashlib
 import threading
 import keyboard
 from press import cast_ch, duck, sit
-from red_percentage import get_percentage_of_guy
+from red_percentage import get_percentage_of_guy, load_config
 
 stop_event = threading.Event()
 
@@ -15,11 +15,12 @@ def cast_or_duck_ch(guy_name):
         time.sleep(9)
         percentage = get_percentage_of_guy(guy_name)
         print(f"Red progress: {percentage:.2f}%")
-        if percentage > 85:
+        if percentage > 85.0:
             duck()
+            time.sleep(1)
             sit()
         else:
-            time.sleep(2)
+            time.sleep(1)
             sit()
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -55,7 +56,7 @@ def tail_log_file(log_file_path, guy_name, num_lines=10, match_string="ERROR"):
                     processed_lines.add(line_hash)
             time.sleep(2)  # Wait for 2 seconds before reading the file again
 
-def start_tail(log_file_path, guy_name, num_lines=10, match_string="GO Goodegg"):
+def start_tail(log_file_path, guy_name, num_lines, match_string):
     global tail_thread
     stop_event.clear()
     tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, num_lines, match_string))
@@ -67,9 +68,11 @@ def stop_tail():
 
 # Keybinding functions
 def start_tail_keybinding():
-    log_file_path = r"C:\Users\Public\Daybreak Game Company\Installed Games\EverQuest\Logs\eqlog_Badegg_teek.txt"
+    # log_file_path = r"C:\Users\Public\Daybreak Game Company\Installed Games\EverQuest\Logs\eqlog_Badegg_teek.txt"
+    config = load_config()
+    log_file_path = config['log_file']
     guy_name = input("Enter the name of the guy you're watching: ")
-    start_tail(log_file_path, guy_name, num_lines=10, match_string="GO Goodegg")
+    start_tail(log_file_path, guy_name, num_lines=10, match_string=config['match_word'])
 
 def stop_tail_keybinding():
     stop_tail()

@@ -109,6 +109,18 @@ def create_bounding_box():
     
     print(f"Bounding box '{name}' saved: left={left}, top={top}, width={width}, height={height}")
 
+def save_log_file_path(log_file_path):
+    """Save the log file path to the configuration."""
+    config = load_config()
+    config['log_file'] = log_file_path
+    save_config(config)
+
+def save_match_word(match_word):
+    """Save the match word to the configuration."""
+    config = load_config()
+    config['match_word'] = match_word
+    save_config(config)
+
 def append_to_log(name, percentage, timestamp, filename='monitor_log.json'):
     """Append monitoring data to a JSON log file."""
     log_entry = {
@@ -199,12 +211,18 @@ def plot_progress(log_file='monitor_log.json'):
 def main():
     parser = argparse.ArgumentParser(description="Red Progress Bar Analyzer")
     parser.add_argument('--create', action='store_true', help="Create a new bounding box")
+    parser.add_argument('--log-file', type=str, help="Specify the log file to use")
+    parser.add_argument('--match-word', type=str, help="Specify the word to match in the log file")
     parser.add_argument('--monitor', type=str, help="Monitor progress for a specific bounding box")
     parser.add_argument('--plot', action='store_true', help="Plot the progress data from the log file")
     args = parser.parse_args()
 
     if args.create:
         create_bounding_box()
+    elif args.log_file:
+        save_log_file_path(args.log_file)
+    elif args.match_word:
+        save_match_word(args.match_word)
     elif args.monitor:
         monitor_progress(args.monitor)
     elif args.plot:
