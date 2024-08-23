@@ -2,21 +2,26 @@ import time
 import os
 import hashlib
 import threading
+import keyboard
 from press import cast_ch, duck, sit
 from red_percentage import get_percentage_of_guy
 
-def cast_or_duck_ch():
-    # Simulate a keystroke or any other action
+stop_event = threading.Event()
+
+def cast_or_duck_ch(guy_name):
     print("Casting spell...")
     cast_ch()
     time.sleep(9)
-    percentage = get_percentage_of_guy("badegg")
+    percentage = get_percentage_of_guy(guy_name)
     print(f"Red progress: {percentage:.2f}%")
     if percentage > 85:
         duck()
-    sit()
+        sit()
+    else:
+        time.sleep(2)
+        sit()
 
-def tail_log_file(log_file_path, num_lines=10, match_string="ERROR"):
+def tail_log_file(log_file_path, guy_name, num_lines=10, match_string="ERROR"):
     processed_lines = set()
 
     def hash_line(line):
@@ -36,17 +41,41 @@ def tail_log_file(log_file_path, num_lines=10, match_string="ERROR"):
         return data[-num_lines:]
 
     with open(log_file_path, 'r') as file:
-        while True:
+        while not stop_event.is_set():
             lines = get_last_lines(file, num_lines)
             for line in lines:
                 line_hash = hash_line(line)
                 if line_hash not in processed_lines:
                     if match_string in line:
-                        threading.Thread(target=cast_or_duck_ch).start()
+                        threading.Thread(target=cast_or_duck_ch, args=(guy_name,)).start()
                         print(line, end='')
                     processed_lines.add(line_hash)
             time.sleep(2)  # Wait for 2 seconds before reading the file again
 
-# Example usage
-log_file_path = r"C:\Users\Public\Daybreak Game Company\Installed Games\EverQuest\Logs\eqlog_Badegg_teek.txt"
-tail_log_file(log_file_path, num_lines=10, match_string="Go egg")
+def start_tail(log_file_path, guy_name, num_lines=10, match_string="ERROR"):
+    global tail_thread
+    stop_event.clear()
+    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, num_lines, match_string))
+    tail_thread.start()
+
+def stop_tail():
+    stop_event.set()
+    tail_thread.join()
+
+# Keybinding functions
+def start_tail_keybinding():
+    log_file_path = r"C:\Users\Public\Daybreak Game Company\Installed Games\EverQuest\Logs\eqlog_Badegg_teek.txt"
+    guy_name = input("Enter the name of the guy you're watching: ")
+    start_tail(log_file_path, guy_name, num_lines=10, match_string="Go egg")
+
+def stop_tail_keybinding():
+    stop_tail()
+
+# Set up keybindings
+keyboard.add_hotkey('ctrl+alt+s', start_tail_keybinding)
+keyboard.add_hotkey('ctrl+alt+q', stop_tail_keybinding)
+
+# Keep the script running to listen for keybindings
+print("Press Ctrl+Alt+S to start tailing the log file.")
+print("Press Ctrl+Alt+Q to stop tailing the log file.")
+keyboard.wait('esc')  # Press 'esc' to exit the script
