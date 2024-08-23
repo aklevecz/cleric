@@ -9,17 +9,20 @@ from red_percentage import get_percentage_of_guy
 stop_event = threading.Event()
 
 def cast_or_duck_ch(guy_name):
-    print("Casting spell...")
-    cast_ch()
-    time.sleep(9)
-    percentage = get_percentage_of_guy(guy_name)
-    print(f"Red progress: {percentage:.2f}%")
-    if percentage > 85:
-        duck()
-        sit()
-    else:
-        time.sleep(2)
-        sit()
+    try:
+        print("Casting spell...")
+        cast_ch()
+        time.sleep(9)
+        percentage = get_percentage_of_guy(guy_name)
+        print(f"Red progress: {percentage:.2f}%")
+        if percentage > 85:
+            duck()
+            sit()
+        else:
+            time.sleep(2)
+            sit()
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def tail_log_file(log_file_path, guy_name, num_lines=10, match_string="ERROR"):
     processed_lines = set()
@@ -52,7 +55,7 @@ def tail_log_file(log_file_path, guy_name, num_lines=10, match_string="ERROR"):
                     processed_lines.add(line_hash)
             time.sleep(2)  # Wait for 2 seconds before reading the file again
 
-def start_tail(log_file_path, guy_name, num_lines=10, match_string="ERROR"):
+def start_tail(log_file_path, guy_name, num_lines=10, match_string="GO Goodegg"):
     global tail_thread
     stop_event.clear()
     tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, num_lines, match_string))
@@ -66,7 +69,7 @@ def stop_tail():
 def start_tail_keybinding():
     log_file_path = r"C:\Users\Public\Daybreak Game Company\Installed Games\EverQuest\Logs\eqlog_Badegg_teek.txt"
     guy_name = input("Enter the name of the guy you're watching: ")
-    start_tail(log_file_path, guy_name, num_lines=10, match_string="Go egg")
+    start_tail(log_file_path, guy_name, num_lines=10, match_string="GO Goodegg")
 
 def stop_tail_keybinding():
     stop_tail()
