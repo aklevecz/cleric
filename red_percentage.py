@@ -1,4 +1,3 @@
-import pyautogui
 import numpy as np
 from PIL import Image
 import tkinter as tk
@@ -9,7 +8,7 @@ import argparse
 import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter, HourLocator
 import matplotlib.dates as mdates
-
+import pyautogui
 import pandas as pd
 class ScreenSelector:
     def __init__(self, master):
