@@ -1,12 +1,15 @@
 import time
 import os
-import hashlib
 import threading
 import keyboard
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 from press import cast_ch, duck, sit
 from red_percentage import get_percentage_of_guy, load_config
 
 stop_event = threading.Event()
+observer = None
+tail_thread = None
 
 def cast_or_duck_ch(guy_name):
     try:
@@ -25,63 +28,70 @@ def cast_or_duck_ch(guy_name):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def tail_log_file(log_file_path, guy_name, num_lines=10, match_string="ERROR"):
-    processed_lines = set()
+class LogFileHandler(FileSystemEventHandler):
+    def __init__(self, log_file_path, guy_name, match_string="ERROR"):
+        self.log_file_path = log_file_path
+        self.guy_name = guy_name
+        self.match_string = match_string
+        self.file_position = os.path.getsize(log_file_path)  # Start at the end of the file
 
-    def hash_line(line):
-        return hashlib.md5(line.encode()).hexdigest()
+    def on_modified(self, event):
+        if event.src_path == self.log_file_path:
+            with open(self.log_file_path, 'r') as file:
+                file.seek(self.file_position)
+                new_lines = file.readlines()
+                self.file_position = file.tell()
+                for line in new_lines:
+                    print(line, end='')
+                    if self.match_string in line:
+                        threading.Thread(target=cast_or_duck_ch, args=(self.guy_name,)).start()
 
-    def get_last_lines(file, num_lines):
-        file.seek(0, os.SEEK_END)
-        file_size = file.tell()
-        buffer_size = 1024
-        data = []
-        while len(data) < num_lines and file_size > 0:
-            if file_size < buffer_size:
-                buffer_size = file_size
-            file.seek(file_size - buffer_size)
-            data = file.readlines() + data
-            file_size -= buffer_size
-        return data[-num_lines:]
-
-    with open(log_file_path, 'r') as file:
+def tail_log_file(log_file_path, guy_name, match_string="ERROR"):
+    global observer
+    event_handler = LogFileHandler(log_file_path, guy_name, match_string)
+    observer = Observer()
+    observer.schedule(event_handler, path=os.path.dirname(log_file_path), recursive=False)
+    observer.start()
+    try:
         while not stop_event.is_set():
-            lines = get_last_lines(file, num_lines)
-            for line in lines:
-                line_hash = hash_line(line)
-                if line_hash not in processed_lines:
-                    if match_string in line:
-                        threading.Thread(target=cast_or_duck_ch, args=(guy_name,)).start()
-                        print(line, end='')
-                    processed_lines.add(line_hash)
-            time.sleep(2)  # Wait for 2 seconds before reading the file again
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
 
-def start_tail(log_file_path, guy_name, num_lines, match_string):
+def start_tail(log_file_path, guy_name, match_string):
     global tail_thread
     stop_event.clear()
-    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, num_lines, match_string))
+    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_string))
     tail_thread.start()
+    print("Log file parsing started.")
 
 def stop_tail():
+    global observer, tail_thread
+    if observer:
+        observer.stop()
     stop_event.set()
-    tail_thread.join()
+    if tail_thread:
+        tail_thread.join()
+    print("Log file parsing stopped.")
 
 # Keybinding functions
 def start_tail_keybinding():
-    # log_file_path = r"C:\Users\Public\Daybreak Game Company\Installed Games\EverQuest\Logs\eqlog_Badegg_teek.txt"
     config = load_config()
     log_file_path = config['log_file']
     guy_name = input("Enter the name of the guy you're watching: ")
-    start_tail(log_file_path, guy_name, num_lines=10, match_string=config['match_word'])
+    start_tail(log_file_path, guy_name, config['match_word'])
 
 def stop_tail_keybinding():
     stop_tail()
 
-# Set up keybindings
-keyboard.add_hotkey('ctrl+alt+s', start_tail_keybinding)
-keyboard.add_hotkey('ctrl+alt+q', stop_tail_keybinding)
+if __name__ == "__main__":
+    # Set up keybindings
+    keyboard.add_hotkey('ctrl+alt+s', start_tail_keybinding)
+    keyboard.add_hotkey('ctrl+alt+q', stop_tail_keybinding)
 
-# Keep the script running to listen for keybindings
-print("Press Ctrl+Alt+S to start tailing the log file.")
-print("Press Ctrl+Alt+Q to stop tailing the log file.")
-keyboard.wait('esc')  # Press 'esc' to exit the script
+    # Keep the script running to listen for keybindings
+    print("Press Ctrl+Alt+S to start tailing the log file.")
+    print("Press Ctrl+Alt+Q to stop tailing the log file.")
+    print("Press 'esc' to exit the script.")
+    keyboard.wait('esc')
