@@ -57,7 +57,7 @@ class LogFileHandler(FileSystemEventHandler):
                 for line in new_lines:
                     print(line, end='')
                     for word in self.match_words:
-                        if word in line:
+                        if word in line.lower():
                             if word in action_map:
                                 action_map[word](self.guy_name)
                             break
