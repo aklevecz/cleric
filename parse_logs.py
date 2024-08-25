@@ -10,6 +10,22 @@ from red_percentage import get_percentage_of_guy, load_config
 stop_event = threading.Event()
 observer = None
 tail_thread = None
+health_check_thread = None
+
+def check_health_and_ch(guy_name):
+    try:
+        print("Checking health...")
+        percentage = get_percentage_of_guy(guy_name)
+        print(f"Red progress: {percentage:.2f}%")
+        if percentage < 30.0:
+            cast_ch()
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+def periodic_health_check(guy_name):
+    while not stop_event.is_set():
+        check_health_and_ch(guy_name)
+        time.sleep(2)  # Wait for 2 seconds before the next check
 
 def cast_or_duck_ch(guy_name):
     try:
@@ -54,6 +70,7 @@ action_map = {
     "i need heals goodegg": cast_or_duck_ch_stand,
     "kill goodegg": assist_ma,
 }
+
 class LogFileHandler(FileSystemEventHandler):
     def __init__(self, log_file_path, guy_name, match_words):
         self.log_file_path = log_file_path
@@ -74,10 +91,6 @@ class LogFileHandler(FileSystemEventHandler):
                             if word in action_map:
                                 action_map[word](self.guy_name)
                             break
-                # for line in new_lines:
-                #     print(line, end='')
-                #     if any(word in line for word in self.match_words):
-                #         cast_or_duck_ch(self.guy_name)
 
 def tail_log_file(log_file_path, guy_name, match_words):
     global observer
@@ -93,20 +106,24 @@ def tail_log_file(log_file_path, guy_name, match_words):
     observer.join()
 
 def start_tail(log_file_path, guy_name, match_words):
-    global tail_thread
+    global tail_thread, health_check_thread
     stop_event.clear()
     tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words))
+    health_check_thread = threading.Thread(target=periodic_health_check, args=(guy_name,))
     tail_thread.start()
-    print("Log file parsing started.")
+    health_check_thread.start()
+    print("Log file parsing and health check started.")
 
 def stop_tail():
-    global observer, tail_thread
+    global observer, tail_thread, health_check_thread
     if observer:
         observer.stop()
     stop_event.set()
     if tail_thread:
         tail_thread.join()
-    print("Log file parsing stopped.")
+    if health_check_thread:
+        health_check_thread.join()
+    print("Log file parsing and health check stopped.")
 
 # Keybinding functions
 def start_tail_keybinding():
@@ -124,7 +141,7 @@ if __name__ == "__main__":
     keyboard.add_hotkey('ctrl+alt+q', stop_tail_keybinding)
 
     # Keep the script running to listen for keybindings
-    print("Press Ctrl+Alt+S to start tailing the log file.")
-    print("Press Ctrl+Alt+Q to stop tailing the log file.")
+    print("Press Ctrl+Alt+S to start tailing the log file and health check.")
+    print("Press Ctrl+Alt+Q to stop tailing the log file and health check.")
     print("Press 'esc' to exit the script.")
     keyboard.wait('esc')
