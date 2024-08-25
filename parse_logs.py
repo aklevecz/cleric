@@ -28,7 +28,7 @@ def cast_or_duck_ch(guy_name):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def assist_ma():
+def assist_ma(guy_name):
     try:
         print("Assisting MA...")
         keyboard.press('e')
