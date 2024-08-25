@@ -51,5 +51,4 @@ def tail_log_file(log_file_path, num_lines=10, match_string="ERROR"):
             time.sleep(2)  # Wait for 2 seconds before reading the file again
 
 # Example usage
-log_file_path = r"C:\Users\Public\Daybreak Game Company\Installed Games\EverQuest\Logs\eqlog_Badegg_teek.txt"
 tail_log_file(log_file_path, num_lines=10, match_string="Go egg")
