@@ -23,16 +23,29 @@ def cast_or_duck_ch(guy_name):
             time.sleep(1)
             sit()
         else:
-            time.sleep(1)
+            time.sleep(2)
             sit()
     except Exception as e:
         print(f"An error occurred: {e}")
 
+def assist_ma():
+    try:
+        print("Assisting MA...")
+        keyboard.press('e')
+        time.sleep(0.2)
+        keyboard.release('e')   
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+action_map = {
+    "go goodegg": cast_or_duck_ch,
+    "kill goodegg": assist_ma,
+}
 class LogFileHandler(FileSystemEventHandler):
-    def __init__(self, log_file_path, guy_name, match_string="ERROR"):
+    def __init__(self, log_file_path, guy_name, match_words):
         self.log_file_path = log_file_path
         self.guy_name = guy_name
-        self.match_string = match_string
+        self.match_words = match_words if isinstance(match_words, list) else [match_words]
         self.file_position = os.path.getsize(log_file_path)  # Start at the end of the file
 
     def on_modified(self, event):
@@ -43,12 +56,19 @@ class LogFileHandler(FileSystemEventHandler):
                 self.file_position = file.tell()
                 for line in new_lines:
                     print(line, end='')
-                    if self.match_string in line:
-                        threading.Thread(target=cast_or_duck_ch, args=(self.guy_name,)).start()
+                    for word in self.match_words:
+                        if word in line:
+                            if word in action_map:
+                                action_map[word](self.guy_name)
+                            break
+                # for line in new_lines:
+                #     print(line, end='')
+                #     if any(word in line for word in self.match_words):
+                #         cast_or_duck_ch(self.guy_name)
 
-def tail_log_file(log_file_path, guy_name, match_string="ERROR"):
+def tail_log_file(log_file_path, guy_name, match_words):
     global observer
-    event_handler = LogFileHandler(log_file_path, guy_name, match_string)
+    event_handler = LogFileHandler(log_file_path, guy_name, match_words)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(log_file_path), recursive=False)
     observer.start()
@@ -59,10 +79,10 @@ def tail_log_file(log_file_path, guy_name, match_string="ERROR"):
         observer.stop()
     observer.join()
 
-def start_tail(log_file_path, guy_name, match_string):
+def start_tail(log_file_path, guy_name, match_words):
     global tail_thread
     stop_event.clear()
-    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_string))
+    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words))
     tail_thread.start()
     print("Log file parsing started.")
 
@@ -80,7 +100,7 @@ def start_tail_keybinding():
     config = load_config()
     log_file_path = config['log_file']
     guy_name = input("Enter the name of the guy you're watching: ")
-    start_tail(log_file_path, guy_name, config['match_word'])
+    start_tail(log_file_path, guy_name, config['match_words'])
 
 def stop_tail_keybinding():
     stop_tail()

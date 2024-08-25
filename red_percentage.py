@@ -115,6 +115,12 @@ def save_log_file_path(log_file_path):
     config['log_file'] = log_file_path
     save_config(config)
 
+def save_match_words(match_words):
+    """Save the match words to the configuration."""
+    config = load_config()
+    config['match_words'] = match_words if isinstance(match_words, list) else [match_words]
+    save_config(config)
+    
 def save_match_word(match_word):
     """Save the match word to the configuration."""
     config = load_config()
