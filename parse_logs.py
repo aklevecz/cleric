@@ -28,6 +28,18 @@ def cast_or_duck_ch(guy_name):
     except Exception as e:
         print(f"An error occurred: {e}")
 
+def cast_or_duck_ch_stand(guy_name):
+    try:
+        print("Casting spell...")
+        cast_ch()
+        time.sleep(9)
+        percentage = get_percentage_of_guy(guy_name)
+        print(f"Red progress: {percentage:.2f}%")
+        if percentage > 85.0:
+            duck()
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
 def assist_ma(guy_name):
     try:
         print("Assisting MA...")
@@ -39,6 +51,7 @@ def assist_ma(guy_name):
 
 action_map = {
     "go goodegg": cast_or_duck_ch,
+    "i need heals goodegg": cast_or_duck_ch_stand,
     "kill goodegg": assist_ma,
 }
 class LogFileHandler(FileSystemEventHandler):
