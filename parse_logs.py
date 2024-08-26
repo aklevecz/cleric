@@ -34,8 +34,9 @@ def check_health_and_ch(guy_name):
 def periodic_health_check(guy_name):
     while not stop_event.is_set():
         check_health_and_ch(guy_name)
-        tag_nearest_enemy()
-        random_sleep_interval = random.randint(5, 20) 
+        # tag_nearest_enemy()
+        # random_sleep_interval = random.randint(5, 20) 
+        random_sleep_interval = 2
         time.sleep(random_sleep_interval)  # Wait for 2 seconds before the next check
 
 def cast_or_duck_ch(guy_name):
