@@ -12,6 +12,14 @@ observer = None
 tail_thread = None
 health_check_thread = None
 
+def tag_nearest_enemy():
+    keyboard.press('q')
+    time.sleep(0.2)
+    keyboard.release('q')
+    keyboard.press('z')
+    time.sleep(0.2)
+    keyboard.release('z')
+
 def check_health_and_ch(guy_name):
     try:
         print("Checking health...")
@@ -25,6 +33,7 @@ def check_health_and_ch(guy_name):
 def periodic_health_check(guy_name):
     while not stop_event.is_set():
         check_health_and_ch(guy_name)
+        tag_nearest_enemy()
         time.sleep(2)  # Wait for 2 seconds before the next check
 
 def cast_or_duck_ch(guy_name):
