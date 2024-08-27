@@ -26,7 +26,7 @@ def check_health_and_ch(guy_name):
         print("Checking health...")
         percentage = get_percentage_of_guy(guy_name)
         print(f"Red progress: {percentage:.2f}%")
-        if percentage < 30.0:
+        if percentage < 40.0:
             cast_ch()
     except Exception as e:
         print(f"An error occurred: {e}")
