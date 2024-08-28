@@ -5,9 +5,8 @@ from datetime import datetime, timedelta
 import json
 import os
 import argparse
-import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter, HourLocator
-import matplotlib.dates as mdates
+# import matplotlib.pyplot as plt
+# import matplotlib.dates as mdates
 import pyautogui
 import pandas as pd
 class ScreenSelector:
@@ -185,34 +184,34 @@ def get_percentage_of_guy(name):
     percentage = analyze_red_progress(screenshot)
     return percentage
 
-def plot_progress(log_file='monitor_log.json'):
-    """Plot the progress data from the JSON log file."""
-    if not os.path.exists(log_file):
-        print(f"Log file '{log_file}' not found.")
-        return
+# def plot_progress(log_file='monitor_log.json'):
+#     """Plot the progress data from the JSON log file."""
+#     if not os.path.exists(log_file):
+#         print(f"Log file '{log_file}' not found.")
+#         return
 
-    with open(log_file, 'r') as file:
-        data = json.load(file)
+#     with open(log_file, 'r') as file:
+#         data = json.load(file)
 
-    df = pd.DataFrame(data)
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
+#     df = pd.DataFrame(data)
+#     df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-    plt.figure(figsize=(12, 6))
-    for name in df['name'].unique():
-        name_data = df[df['name'] == name]
-        plt.plot(name_data['timestamp'], name_data['percentage'], label=name)
+#     plt.figure(figsize=(12, 6))
+#     for name in df['name'].unique():
+#         name_data = df[df['name'] == name]
+#         plt.plot(name_data['timestamp'], name_data['percentage'], label=name)
 
-    plt.xlabel('Time')
-    plt.ylabel('Percentage')
-    plt.title('Health % During Boss')
-    plt.legend()
-    plt.grid(True)
+#     plt.xlabel('Time')
+#     plt.ylabel('Percentage')
+#     plt.title('Health % During Boss')
+#     plt.legend()
+#     plt.grid(True)
 
-    plt.ylim(0, 100)  # Set y-axis range from 0 to 100
+#     plt.ylim(0, 100)  # Set y-axis range from 0 to 100
 
-    plt.gcf().autofmt_xdate()  # Rotate and align the tick labels
-    plt.tight_layout()
-    plt.show()
+#     plt.gcf().autofmt_xdate()  # Rotate and align the tick labels
+#     plt.tight_layout()
+#     plt.show()
 
 def main():
     parser = argparse.ArgumentParser(description="Red Progress Bar Analyzer")
