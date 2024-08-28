@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 import tkinter as tk
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 import os
 import argparse
@@ -18,15 +18,15 @@ class ScreenSelector:
         self.current_y = None
         self.rect = None
 
-        root.attributes('-fullscreen', True)
-        root.attributes('-alpha', 0.3)
-        root.configure(cursor="cross")
+        master.attributes('-fullscreen', True)
+        master.attributes('-alpha', 0.3)
+        master.configure(cursor="cross")
 
-        root.bind('<ButtonPress-1>', self.on_button_press)
-        root.bind('<B1-Motion>', self.on_move_press)
-        root.bind('<ButtonRelease-1>', self.on_button_release)
+        master.bind('<ButtonPress-1>', self.on_button_press)
+        master.bind('<B1-Motion>', self.on_move_press)
+        master.bind('<ButtonRelease-1>', self.on_button_release)
 
-        self.canvas = tk.Canvas(root, width=root.winfo_screenwidth(), height=root.winfo_screenheight())
+        self.canvas = tk.Canvas(master, width=master.winfo_screenwidth(), height=master.winfo_screenheight())
         self.canvas.pack()
 
     def on_button_press(self, event):
@@ -117,7 +117,6 @@ def create_bounding_box():
     """Create a new bounding box and save it to the configuration."""
     name = input("Enter a name for this bounding box: ")
     
-    global root
     root = tk.Tk()
     app = ScreenSelector(root)
     root.mainloop()
@@ -132,6 +131,10 @@ def create_bounding_box():
     save_config(config)
     
     print(f"Bounding box '{name}' saved: left={left}, top={top}, width={width}, height={height}")
+    
+    # Clean up
+    root.destroy()
+    time.sleep(0.5)  # Short delay to ensure window is closed
 
 def save_log_file_path(log_file_path):
     """Save the log file path to the configuration."""
