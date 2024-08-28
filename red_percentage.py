@@ -56,7 +56,7 @@ def analyze_red_progress(image):
     """Analyze the percentage of red fill based on the rightmost red pixel."""
     img_array = np.array(image)
     
-    lower_red = np.array([180, 0, 0])
+    lower_red = np.array([150, 0, 0])
     upper_red = np.array([255, 50, 50])
     
     red_mask = np.all((img_array >= lower_red) & (img_array <= upper_red), axis=-1)
