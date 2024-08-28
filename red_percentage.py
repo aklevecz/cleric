@@ -63,6 +63,7 @@ def analyze_red_progress(image):
     
     if not np.any(red_mask):
         print("No red pixels detected in the image.")
+        image.save("no_red_pixels.png")
         return 0.00
     
     red_columns = np.any(red_mask, axis=0)
