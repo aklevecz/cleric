@@ -68,7 +68,6 @@ def analyze_red_progress(image):
     
     red_columns = np.any(red_mask, axis=0)
     if np.any(red_columns):
-        image.save("red_progress.png")
         rightmost_red = np.max(np.where(red_columns)[0])
     else:
         return 0.00
@@ -76,6 +75,7 @@ def analyze_red_progress(image):
     total_width = img_array.shape[1] - 1
     percentage = (rightmost_red / total_width) * 100
     
+    image.save("red_progress.png")
     return round(percentage, 2)
 
 def save_config(config, filename='config.json'):
