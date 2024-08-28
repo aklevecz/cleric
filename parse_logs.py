@@ -97,7 +97,7 @@ class LogFileHandler(FileSystemEventHandler):
                 new_lines = file.readlines()
                 self.file_position = file.tell()
                 for line in new_lines:
-                    print(line, end='')
+                    # print(line, end='')
                     for word in self.match_words:
                         if word in line.lower():
                             if word in action_map:
