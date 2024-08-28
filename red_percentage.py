@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 import json
 import os
 import argparse
-# import matplotlib.pyplot as plt
-# import matplotlib.dates as mdates
-import pyautogui
 import pandas as pd
+from mss import mss
+import time
+
 class ScreenSelector:
     def __init__(self, master):
         self.master = master
@@ -47,14 +47,37 @@ class ScreenSelector:
         self.current_y = self.canvas.canvasy(event.y)
         self.master.quit()
 
-def capture_screen_region(left, top, width, height):
-    """Capture a specific region of the screen."""
-    screenshot = pyautogui.screenshot(region=(int(left), int(top), int(width), int(height)))
-    return screenshot
+def capture_screen_region_with_retry(left, top, width, height, max_retries=3, delay=0.5):
+    """Capture a specific region of the screen using mss with retries."""
+    with mss() as sct:
+        region = {"left": int(left), "top": int(top), "width": int(width), "height": int(height)}
+        
+        for attempt in range(max_retries):
+            try:
+                screenshot = sct.grab(region)
+                img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
+                
+                # Check if the image is not entirely black
+                if np.mean(np.array(img)) > 0:
+                    return img
+                else:
+                    print(f"Attempt {attempt + 1}: Captured image is black. Retrying...")
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+            
+            time.sleep(delay)
+        
+        print("All attempts failed. Returning the last captured image.")
+        return img
 
 def analyze_red_progress(image):
     """Analyze the percentage of red fill based on the rightmost red pixel."""
     img_array = np.array(image)
+    
+    # Check if the image is entirely black
+    if np.mean(img_array) < 1:  # You might need to adjust this threshold
+        print("Warning: Captured image appears to be entirely black.")
+        return 0.00
     
     lower_red = np.array([150, 0, 0])
     upper_red = np.array([255, 50, 50])
@@ -116,12 +139,6 @@ def save_log_file_path(log_file_path):
     config['log_file'] = log_file_path
     save_config(config)
 
-def save_match_words(match_words):
-    """Save the match words to the configuration."""
-    config = load_config()
-    config['match_words'] = match_words if isinstance(match_words, list) else [match_words]
-    save_config(config)
-    
 def save_match_word(match_word):
     """Save the match word to the configuration."""
     config = load_config()
@@ -161,7 +178,7 @@ def monitor_progress(name):
     
     while True:
         try:
-            screenshot = capture_screen_region(bbox['left'], bbox['top'], bbox['width'], bbox['height'])
+            screenshot = capture_screen_region_with_retry(bbox['left'], bbox['top'], bbox['width'], bbox['height'])
             percentage = analyze_red_progress(screenshot)
             timestamp = datetime.now().isoformat()
             print(f"Red progress: {percentage:.2f}%")
@@ -171,7 +188,7 @@ def monitor_progress(name):
         except Exception as e:
             print(f"An error occurred: {e}")
         
-        pyautogui.sleep(0.1)
+        time.sleep(0.1)
 
 def get_percentage_of_guy(name):
     config = load_config()
@@ -182,38 +199,9 @@ def get_percentage_of_guy(name):
     bbox = config[name]
     print(f"Monitoring progress for '{name}'")
     
-    screenshot = capture_screen_region(bbox['left'], bbox['top'], bbox['width'], bbox['height'])
+    screenshot = capture_screen_region_with_retry(bbox['left'], bbox['top'], bbox['width'], bbox['height'])
     percentage = analyze_red_progress(screenshot)
     return percentage
-
-# def plot_progress(log_file='monitor_log.json'):
-#     """Plot the progress data from the JSON log file."""
-#     if not os.path.exists(log_file):
-#         print(f"Log file '{log_file}' not found.")
-#         return
-
-#     with open(log_file, 'r') as file:
-#         data = json.load(file)
-
-#     df = pd.DataFrame(data)
-#     df['timestamp'] = pd.to_datetime(df['timestamp'])
-
-#     plt.figure(figsize=(12, 6))
-#     for name in df['name'].unique():
-#         name_data = df[df['name'] == name]
-#         plt.plot(name_data['timestamp'], name_data['percentage'], label=name)
-
-#     plt.xlabel('Time')
-#     plt.ylabel('Percentage')
-#     plt.title('Health % During Boss')
-#     plt.legend()
-#     plt.grid(True)
-
-#     plt.ylim(0, 100)  # Set y-axis range from 0 to 100
-
-#     plt.gcf().autofmt_xdate()  # Rotate and align the tick labels
-#     plt.tight_layout()
-#     plt.show()
 
 def main():
     parser = argparse.ArgumentParser(description="Red Progress Bar Analyzer")
@@ -221,7 +209,6 @@ def main():
     parser.add_argument('--log-file', type=str, help="Specify the log file to use")
     parser.add_argument('--match-word', type=str, help="Specify the word to match in the log file")
     parser.add_argument('--monitor', type=str, help="Monitor progress for a specific bounding box")
-    parser.add_argument('--plot', action='store_true', help="Plot the progress data from the log file")
     args = parser.parse_args()
 
     if args.create:
@@ -232,8 +219,6 @@ def main():
         save_match_word(args.match_word)
     elif args.monitor:
         monitor_progress(args.monitor)
-    elif args.plot:
-        plot_progress()
     else:
         parser.print_help()
 
