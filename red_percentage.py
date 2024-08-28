@@ -68,6 +68,7 @@ def analyze_red_progress(image):
     
     red_columns = np.any(red_mask, axis=0)
     if np.any(red_columns):
+        image.save("red_progress.png")
         rightmost_red = np.max(np.where(red_columns)[0])
     else:
         return 0.00
