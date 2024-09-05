@@ -90,9 +90,9 @@ action_map = {
 }
 
 class LogFileHandler(FileSystemEventHandler):
-    def __init__(self, log_file_path, match_words):
+    def __init__(self, log_file_path, guy_name, match_words):
         self.log_file_path = log_file_path
-        # self.guy_name = guy_name
+        self.guy_name = guy_name
         self.match_words = match_words if isinstance(match_words, list) else [match_words]
         self.file_position = os.path.getsize(log_file_path)  # Start at the end of the file
 
@@ -107,14 +107,14 @@ class LogFileHandler(FileSystemEventHandler):
                     for word in self.match_words:
                         if word in line.lower():
                             if "go" in word:
-                                cast_or_duck_ch(current_guy_name)
+                                cast_or_duck_ch(self.guy_name)
                             # if word in action_map:
                                 # action_map[word](self.guy_name)
                             break
 
-def tail_log_file(log_file_path, match_words):
+def tail_log_file(log_file_path, guy_name, match_words):
     global observer
-    event_handler = LogFileHandler(log_file_path, match_words)
+    event_handler = LogFileHandler(log_file_path, guy_name, match_words)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(log_file_path), recursive=False)
     observer.start()
@@ -129,10 +129,10 @@ def start_tail(log_file_path, guy_name, match_words):
     global tail_thread, health_check_thread
     stop_event.clear()
     current_guy_name = guy_name
-    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, match_words))
+    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words))
     health_check_thread = threading.Thread(target=periodic_health_check, args=(current_guy_name,))
     tail_thread.start()
-    health_check_thread.start()
+    # health_check_thread.start()
     print("Log file parsing started.")
 
 def stop_tail():
