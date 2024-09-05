@@ -130,8 +130,8 @@ def start_tail(log_file_path, guy_name, match_words):
     stop_event.clear()
     current_guy_name = guy_name
     tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words))
-    health_check_thread = threading.Thread(target=periodic_health_check, args=(current_guy_name,))
     tail_thread.start()
+    # health_check_thread = threading.Thread(target=periodic_health_check, args=(current_guy_name,))
     # health_check_thread.start()
     print("Log file parsing started.")
 
