@@ -86,31 +86,43 @@ def create_bounding_box():
     root.destroy()
     time.sleep(0.5)  # Short delay to ensure window is closed
 
-def save_log_file_path(log_file_path):
+def strip_quotes(s):
+    """Remove leading and trailing quotes from a string."""
+    return s.strip("\"'")
+
+def save_log_file_path(log_file_path=None):
     """Save the log file path to the configuration."""
+    if log_file_path is None:
+        log_file_path = strip_quotes(input("Enter the path to the log file: "))
     config = load_config()
     config['log_file'] = log_file_path
     save_config(config)
+    print(f"Log file path saved: {log_file_path}")
 
-def save_match_word(match_word):
+def save_match_word(match_word=None):
     """Save the match word to the configuration."""
+    if match_word is None:
+        match_word = strip_quotes(input("Enter a word to match in the log file: "))
     config = load_config()
+    if 'match_words' not in config:
+        config['match_words'] = []
     config['match_words'].append(match_word)
     save_config(config)
+    print(f"Match word saved: {match_word}")
 
 def main():
     parser = argparse.ArgumentParser(description="Red Progress Bar Analyzer")
     parser.add_argument('--create', action='store_true', help="Create a new bounding box")
-    parser.add_argument('--log-file', type=str, help="Specify the log file to use")
-    parser.add_argument('--match-word', type=str, help="Specify a word to match in the log file")
+    parser.add_argument('--log-file', nargs='?', const='', type=str, help="Specify the log file to use")
+    parser.add_argument('--match-word', nargs='?', const='', type=str, help="Specify a word to match in the log file")
     args = parser.parse_args()
 
     if args.create:
         create_bounding_box()
-    elif args.log_file:
-        save_log_file_path(args.log_file)
-    elif args.match_word:
-        save_match_word(args.match_word)
+    elif args.log_file is not None:
+        save_log_file_path(args.log_file if args.log_file != '' else None)
+    elif args.match_word is not None:
+        save_match_word(args.match_word if args.match_word != '' else None)
     else:
         parser.print_help()
 
