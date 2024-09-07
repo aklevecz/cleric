@@ -19,6 +19,8 @@ class ScreenSelector:
         self.current_y = None
         self.rect = None
 
+        self.scaling = master.winfo_fpixels('1i') / 72
+
         master.attributes('-fullscreen', True)
         master.attributes('-alpha', 0.3)
         master.configure(cursor="cross")
@@ -48,6 +50,12 @@ class ScreenSelector:
         self.current_y = self.canvas.canvasy(event.y)
         self.master.quit()
 
+    def get_scaled_coordinates(self):
+        left = min(self.start_x, self.end_x) * self.scaling
+        top = min(self.start_y, self.end_y) * self.scaling
+        right = max(self.start_x, self.end_x) * self.scaling
+        bottom = max(self.start_y, self.end_y) * self.scaling
+        return map(int, (left, top, right - left, bottom - top))
 
 
 
@@ -71,11 +79,12 @@ def create_bounding_box():
     app = ScreenSelector(root)
     root.mainloop()
     
-    left = min(app.start_x, app.current_x)
-    top = min(app.start_y, app.current_y)
-    width = abs(app.current_x - app.start_x)
-    height = abs(app.current_y - app.start_y)
-    
+    # left = min(app.start_x, app.current_x)
+    # top = min(app.start_y, app.current_y)
+    # width = abs(app.current_x - app.start_x)
+    # height = abs(app.current_y - app.start_y)
+    left, top, width, height = app.get_scaled_coordinates()
+
     config = load_config()
     config[name] = {'left': left, 'top': top, 'width': width, 'height': height}
     save_config(config)
