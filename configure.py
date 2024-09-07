@@ -13,8 +13,7 @@ import time
 class ScreenSelector:
     def __init__(self, master):
         self.master = master
-        self.start_x = None
-        self.start_y = None
+        self.start_x = self.start_y = self.end_x = self.end_y = 0
         self.current_x = None
         self.current_y = None
         self.rect = None
@@ -33,21 +32,17 @@ class ScreenSelector:
         self.canvas.pack()
 
     def on_button_press(self, event):
-        self.start_x = self.canvas.canvasx(event.x)
-        self.start_y = self.canvas.canvasy(event.y)
-
-        if not self.rect:
-            self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline='red', width=2)
+        self.start_x = event.x
+        self.start_y = event.y
+        self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline='red', width=2)
 
     def on_move_press(self, event):
-        curX = self.canvas.canvasx(event.x)
-        curY = self.canvas.canvasy(event.y)
-
-        self.canvas.coords(self.rect, self.start_x, self.start_y, curX, curY)
+        self.end_x, self.end_y = event.x, event.y
+        self.canvas.coords(self.rect, self.start_x, self.start_y, self.end_x, self.end_y)
 
     def on_button_release(self, event):
-        self.current_x = self.canvas.canvasx(event.x)
-        self.current_y = self.canvas.canvasy(event.y)
+        self.end_x = event.x
+        self.end_y = event.y
         self.master.quit()
 
     def get_scaled_coordinates(self):
