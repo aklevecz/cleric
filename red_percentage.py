@@ -34,27 +34,26 @@ def capture_screen_region_with_retry(left, top, width, height, max_retries=3, de
         return img
     
 def analyze_red_progress(image):
-    """Analyze the percentage of red fill based on the rightmost red pixel, with lenient red detection."""
+    """Analyze the percentage of red fill based on the rightmost red pixel, using only NumPy."""
     img_array = np.array(image)
     
     # Check if the image is entirely black
-    if np.mean(img_array) < 1:  # You might need to adjust this threshold
+    if np.mean(img_array) < 1:
         print("Warning: Captured image appears to be entirely black.")
         return 0.00
     
-    # Split the image into its RGB channels
+    # Extract RGB channels
     r, g, b = img_array[:,:,0], img_array[:,:,1], img_array[:,:,2]
     
-    # Define a lenient condition for "redness"
-    # Red channel should be the highest, and significantly higher than the average of green and blue
-    red_mask = (r > g) & (r > b) & (r > ((g + b) / 2 + 20))
+    # Define conditions for red
+    red_condition = (r > 100) & (r > g * 1.5) & (r > b * 1.5)
     
-    if not np.any(red_mask):
+    if not np.any(red_condition):
         print("No red pixels detected in the image.")
         Image.fromarray(img_array).save("no_red_pixels.png")
         return 0.00
     
-    red_columns = np.any(red_mask, axis=0)
+    red_columns = np.any(red_condition, axis=0)
     if np.any(red_columns):
         rightmost_red = np.max(np.where(red_columns)[0])
     else:
@@ -65,7 +64,7 @@ def analyze_red_progress(image):
     
     # Save a visualization of the detected red areas
     red_visualization = np.zeros_like(img_array)
-    red_visualization[red_mask] = [255, 0, 0]  # Set detected red pixels to bright red
+    red_visualization[red_condition] = [255, 0, 0]  # Set detected red pixels to bright red
     Image.fromarray(red_visualization).save("detected_red_areas.png")
     
     Image.fromarray(img_array).save("red_progress.png")
