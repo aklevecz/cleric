@@ -19,6 +19,7 @@ class ScreenSelector:
         self.rect = None
 
         self.scaling = master.winfo_fpixels('1i') / 72
+        print(self.scaling)
 
         master.attributes('-fullscreen', True)
         master.attributes('-alpha', 0.3)
