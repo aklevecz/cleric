@@ -108,6 +108,7 @@ class LogFileHandler(FileSystemEventHandler):
                     for wordsString in self.word_bindings.keys():
                         if wordsString in line.lower():
                             keyBinding = self.word_bindings[wordsString]
+                            print(f"Pressing key binding: {keyBinding} for trigger words: {wordsString}")
                             press_binding(keyBinding)
                             break
 
@@ -141,6 +142,9 @@ def start_tail(log_file_path, guy_name, match_words, word_bindings):
     # health_check_thread = threading.Thread(target=periodic_health_check, args=(current_guy_name,))
     # health_check_thread.start()
     print("Log file parsing started.")
+    print(f"Now monitoring: {current_guy_name}")
+    print(f"Match words: {match_words}")
+    print(f"Word bindings: {word_bindings}")
 
 def stop_tail():
     global observer, tail_thread, health_check_thread
