@@ -16,7 +16,7 @@ if defined PROFILE (set PYTHON=%PYTHON% -m scalene --off --cpu --gpu --profile-a
 echo Using Python %PYTHON%
 
 :launch
-%PYTHON% configure.py --match-word
+%PYTHON% src/configure.py --match-word
 
 :end
 pause

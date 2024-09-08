@@ -34,25 +34,26 @@ def capture_screen_region_with_retry(left, top, width, height, max_retries=3, de
         return img
     
 def analyze_red_progress(image):
-    """Analyze the percentage of red fill based on the rightmost red pixel."""
+    """Analyze the percentage of red fill based on the rightmost red pixel, using only NumPy."""
     img_array = np.array(image)
     
     # Check if the image is entirely black
-    if np.mean(img_array) < 1:  # You might need to adjust this threshold
+    if np.mean(img_array) < 1:
         print("Warning: Captured image appears to be entirely black.")
         return 0.00
     
-    lower_red = np.array([150, 0, 0])
-    upper_red = np.array([255, 50, 50])
+    # Extract RGB channels
+    r, g, b = img_array[:,:,0], img_array[:,:,1], img_array[:,:,2]
     
-    red_mask = np.all((img_array >= lower_red) & (img_array <= upper_red), axis=-1)
+    # Define conditions for red
+    red_condition = (r > 100) & (r > g * 1.5) & (r > b * 1.5)
     
-    if not np.any(red_mask):
+    if not np.any(red_condition):
         print("No red pixels detected in the image.")
-        # image.save("no_red_pixels.png")
+        Image.fromarray(img_array).save("no_red_pixels.png")
         return 0.00
     
-    red_columns = np.any(red_mask, axis=0)
+    red_columns = np.any(red_condition, axis=0)
     if np.any(red_columns):
         rightmost_red = np.max(np.where(red_columns)[0])
     else:
@@ -61,7 +62,12 @@ def analyze_red_progress(image):
     total_width = img_array.shape[1] - 1
     percentage = (rightmost_red / total_width) * 100
     
-    image.save("red_progress.png")
+    # Save a visualization of the detected red areas
+    red_visualization = np.zeros_like(img_array)
+    red_visualization[red_condition] = [255, 0, 0]  # Set detected red pixels to bright red
+    Image.fromarray(red_visualization).save("detected_red_areas.png")
+    
+    Image.fromarray(img_array).save("red_progress.png")
     return round(percentage, 2)
 
 def append_to_log(name, percentage, timestamp, filename='monitor_log.json'):

@@ -5,7 +5,7 @@ import random
 import keyboard
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from press import cast_ch, duck, sit
+from press import cast_ch, duck, sit, press_binding
 from configure import load_config
 from red_percentage import get_percentage_of_guy
 
@@ -90,10 +90,11 @@ action_map = {
 }
 
 class LogFileHandler(FileSystemEventHandler):
-    def __init__(self, log_file_path, guy_name, match_words):
+    def __init__(self, log_file_path, guy_name, match_words, word_bindings):
         self.log_file_path = log_file_path
         self.guy_name = guy_name
         self.match_words = match_words if isinstance(match_words, list) else [match_words]
+        self.word_bindings = word_bindings if isinstance(word_bindings, dict) else {}
         self.file_position = os.path.getsize(log_file_path)  # Start at the end of the file
 
     def on_modified(self, event):
@@ -104,6 +105,11 @@ class LogFileHandler(FileSystemEventHandler):
                 self.file_position = file.tell()
                 for line in new_lines:
                     # print(line, end='')
+                    for wordsString in self.word_bindings.keys():
+                        if wordsString in line.lower():
+                            keyBinding = self.word_bindings[wordsString]
+                            press_binding(keyBinding)
+
                     for word in self.match_words:
                         if word in line.lower():
                             if "go" in word:
@@ -112,9 +118,9 @@ class LogFileHandler(FileSystemEventHandler):
                                 # action_map[word](self.guy_name)
                             break
 
-def tail_log_file(log_file_path, guy_name, match_words):
+def tail_log_file(log_file_path, guy_name, match_words, word_bindings):
     global observer
-    event_handler = LogFileHandler(log_file_path, guy_name, match_words)
+    event_handler = LogFileHandler(log_file_path, guy_name, match_words, word_bindings)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(log_file_path), recursive=False)
     observer.start()
@@ -125,11 +131,11 @@ def tail_log_file(log_file_path, guy_name, match_words):
         observer.stop()
     observer.join()
 
-def start_tail(log_file_path, guy_name, match_words):
+def start_tail(log_file_path, guy_name, match_words, word_bindings):
     global tail_thread, health_check_thread
     stop_event.clear()
     current_guy_name = guy_name
-    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words))
+    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings))
     tail_thread.start()
     # health_check_thread = threading.Thread(target=periodic_health_check, args=(current_guy_name,))
     # health_check_thread.start()
@@ -151,7 +157,7 @@ def start_tail_keybinding():
     config = load_config()
     log_file_path = config['log_file']
     guy_name = input("Enter the name of the guy you're watching: ")
-    start_tail(log_file_path, guy_name, config['match_words'])
+    start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'])
 
 def stop_tail_keybinding():
     stop_tail()
@@ -160,7 +166,7 @@ def change_person_keybinding():
     stop_tail()
     change_monitored_person()
     config = load_config()
-    start_tail(config['log_file'], current_guy_name, config['match_words'])
+    start_tail(config['log_file'], current_guy_name, config['match_words'], config['word_bindings'])
 
 def change_monitored_person():
     global current_guy_name
