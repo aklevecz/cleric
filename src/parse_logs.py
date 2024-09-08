@@ -109,6 +109,7 @@ class LogFileHandler(FileSystemEventHandler):
                         if wordsString in line.lower():
                             keyBinding = self.word_bindings[wordsString]
                             press_binding(keyBinding)
+                            break
 
                     for word in self.match_words:
                         if word in line.lower():
