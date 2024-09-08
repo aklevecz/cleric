@@ -57,13 +57,15 @@ def save_config(config, filename='config.json'):
     """Save the configuration to a JSON file."""
     script_dir = os.path.dirname(__file__)
     file_path = os.path.join(script_dir, filename)
+    file_path = filename
     with open(file_path, 'w') as f:
         json.dump(config, f, indent=4)
 
 def load_config(filename='config.json'):
     """Load the configuration from a JSON file."""
-    script_dir = os.path.dirname(__file__)
-    file_path = os.path.join(script_dir, filename)
+    # script_dir = os.path.dirname(__file__)
+    # file_path = os.path.join(script_dir, filename)
+    file_path = filename
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
             return json.load(f)
