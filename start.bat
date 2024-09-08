@@ -16,7 +16,7 @@ if defined PROFILE (set PYTHON=%PYTHON% -m scalene --off --cpu --gpu --profile-a
 echo Using Python %PYTHON%
 
 :launch
-%PYTHON% parse_logs.py
+%PYTHON% src/parse_logs.py
 
 :end
 pause
