@@ -23,9 +23,15 @@ def cast_ch():
     keyboard.release('1')
 
 def press_binding(key):
-    keyboard.press(key)
+    if key == 'space':
+        keyboard.press(Key.space)
+    else:
+        keyboard.press(key)
     time.sleep(0.2)
-    keyboard.release(key)
+    if key == 'space':
+        keyboard.release(Key.space)
+    else:
+        keyboard.release(key)
 
 # while True:
 #     time.sleep(0.2)
