@@ -161,7 +161,12 @@ def stop_tail():
 def start_tail_keybinding():
     config = load_config()
     log_file_path = config['log_file']
-    guy_name = input("Enter the name of the guy you're watching: ")
+    # stupid check if there is a bounding box
+    guy_name = ""
+    for k, v in config.items():
+        if isinstance(v, dict):
+            if "left" in v:
+                guy_name = input("Enter the name of the guy you're watching: ")
     start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'])
 
 def stop_tail_keybinding():
@@ -186,7 +191,7 @@ if __name__ == "__main__":
     keyboard.add_hotkey('ctrl+alt+c', change_person_keybinding)  # New keybinding
 
     # Keep the script running to listen for keybindings
-    print("Press Ctrl+Alt+S to start auto ch chain.")
-    print("Press Ctrl+Alt+Q to stop auto ch chain.")
+    print("Press Ctrl+Alt+S to start parsing commands.")
+    print("Press Ctrl+Alt+Q to stop parsing commands.")
     print("Press 'Shift+esc' to exit the script.")
     keyboard.wait('shift+esc')
