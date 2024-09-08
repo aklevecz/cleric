@@ -18,7 +18,7 @@ class ScreenSelector:
         self.current_y = None
         self.rect = None
 
-        self.scaling = master.winfo_fpixels('1i') / 72
+        # self.scaling = master.winfo_fpixels('1i') / 72
         self.scaling = 1.0
 
         master.attributes('-fullscreen', True)
@@ -53,19 +53,33 @@ class ScreenSelector:
         bottom = max(self.start_y, self.end_y) * self.scaling
         return map(int, (left, top, right - left, bottom - top))
 
-
-
 def save_config(config, filename='config.json'):
     """Save the configuration to a JSON file."""
-    with open(filename, 'w') as f:
+    script_dir = os.path.dirname(__file__)
+    file_path = os.path.join(script_dir, filename)
+    with open(file_path, 'w') as f:
         json.dump(config, f, indent=4)
 
 def load_config(filename='config.json'):
     """Load the configuration from a JSON file."""
-    if os.path.exists(filename):
-        with open(filename, 'r') as f:
+    script_dir = os.path.dirname(__file__)
+    file_path = os.path.join(script_dir, filename)
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as f:
             return json.load(f)
     return {}
+
+# def save_config(config, filename='config.json'):
+#     """Save the configuration to a JSON file."""
+#     with open(filename, 'w') as f:
+#         json.dump(config, f, indent=4)
+
+# def load_config(filename='config.json'):
+#     """Load the configuration from a JSON file."""
+#     if os.path.exists(filename):
+#         with open(filename, 'r') as f:
+#             return json.load(f)
+#     return {}
 
 def create_bounding_box():
     """Create a new bounding box and save it to the configuration."""
@@ -75,14 +89,10 @@ def create_bounding_box():
     app = ScreenSelector(root)
     root.mainloop()
     
-    # left = min(app.start_x, app.current_x)
-    # top = min(app.start_y, app.current_y)
-    # width = abs(app.current_x - app.start_x)
-    # height = abs(app.current_y - app.start_y)
     left, top, width, height = app.get_scaled_coordinates()
 
     config = load_config()
-    config[name] = {'left': left, 'top': top, 'width': width, 'height': height}
+    config[name.strip()] = {'left': left, 'top': top, 'width': width, 'height': height}
     save_config(config)
     
     print(f"Bounding box '{name}' saved: left={left}, top={top}, width={width}, height={height}")
@@ -111,15 +121,29 @@ def save_match_word(match_word=None):
     config = load_config()
     if 'match_words' not in config:
         config['match_words'] = []
-    config['match_words'].append(match_word)
+    config['match_words'].append(match_word.strip())
     save_config(config)
     print(f"Match word saved: {match_word}")
+
+def words_to_binding(word=None, binding=None):
+    """Save the words to binding mapping to the configuration."""
+    if word is None:
+        word = strip_quotes(input("Enter a string of word(s) to trigger the binding (e.g. assist me dudes!): "))
+    if binding is None:
+        binding = strip_quotes(input("Enter the key binding you want triggered (e.g. 6): "))
+    config = load_config()
+    if 'word_bindings' not in config:
+        config['word_bindings'] = {}
+    config['word_bindings'][word.strip()] = binding.strip()
+    save_config(config)
+    print(f"Word binding saved: {word} -> {binding}")
 
 def main():
     parser = argparse.ArgumentParser(description="Red Progress Bar Analyzer")
     parser.add_argument('--create', action='store_true', help="Create a new bounding box")
     parser.add_argument('--log-file', nargs='?', const='', type=str, help="Specify the log file to use")
     parser.add_argument('--match-word', nargs='?', const='', type=str, help="Specify a word to match in the log file")
+    parser.add_argument('--word-binding', nargs='?', const='', type=str, help="Specify a word to match in the log file and the binding on your hotbar")
     args = parser.parse_args()
 
     if args.create:
@@ -128,6 +152,8 @@ def main():
         save_log_file_path(args.log_file if args.log_file != '' else None)
     elif args.match_word is not None:
         save_match_word(args.match_word if args.match_word != '' else None)
+    elif args.word_binding is not None:
+        words_to_binding(args.word_binding if args.word_binding != '' else None)
     else:
         parser.print_help()
 
