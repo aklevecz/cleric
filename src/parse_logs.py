@@ -167,6 +167,7 @@ def start_tail_keybinding():
         if isinstance(v, dict):
             if "left" in v:
                 guy_name = input("Enter the name of the guy you're watching: ")
+                break
     start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'])
 
 def stop_tail_keybinding():
