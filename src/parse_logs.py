@@ -32,7 +32,7 @@ def check_health_and_ch(guy_name):
         if percentage == 0.0:
             print("Screenshot error or guy is dead, do nothing")
             return
-        if percentage < 40.0:
+        if percentage < 90.0:
             cast_ch()
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -161,7 +161,7 @@ def stop_tail():
 def start_tail_keybinding():
     config = load_config()
     log_file_path = config['log_file']
-    # stupid check if there is a bounding box
+    # Refactor redundant code
     guy_name = ""
     for k, v in config.items():
         if isinstance(v, dict):
@@ -169,6 +169,18 @@ def start_tail_keybinding():
                 guy_name = input("Enter the name of the guy you're watching: ")
                 break
     start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'])
+
+def start_health_check_keybinding():
+    config = load_config()
+    # Refactor redundant code
+    guy_name = ""
+    for k, v in config.items():
+        if isinstance(v, dict):
+            if "left" in v:
+                guy_name = input("Enter the name of the guy you're watching: ")
+                break
+    health_check_thread = threading.Thread(target=periodic_health_check, args=(guy_name,))
+    health_check_thread.start()
 
 def stop_tail_keybinding():
     stop_tail()
@@ -188,11 +200,13 @@ def change_monitored_person():
 if __name__ == "__main__":
     # Set up keybindings
     keyboard.add_hotkey('ctrl+alt+s', start_tail_keybinding)
+    keyboard.add_hotkey('ctrl+alt+h', start_health_check_keybinding)
     keyboard.add_hotkey('ctrl+alt+q', stop_tail_keybinding)
     keyboard.add_hotkey('ctrl+alt+c', change_person_keybinding)  # New keybinding
 
     # Keep the script running to listen for keybindings
     print("Press Ctrl+Alt+S to start parsing commands.")
+    print("Press Ctrl+Alt+H to start auto heal.")
     print("Press Ctrl+Alt+Q to stop parsing commands.")
     print("Press 'Shift+esc' to exit the script.")
     keyboard.wait('shift+esc')
