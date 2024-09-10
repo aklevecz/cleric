@@ -1,0 +1,19 @@
+{
+    "program_path": "\"C:\\Users\\Public\\Game Company\\Installed Games\\qq\\lunchpods.exe\"",
+    "actions": [
+        {
+            "type": "click",
+            "x": 1245,
+            "y": 755,
+            "delay": 10.0
+        },
+        {
+            "type": "enter",
+            "delay": 10.0
+        },
+        {
+            "type": "enter",
+            "delay": 10.0
+        }
+    ]
+}

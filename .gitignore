@@ -3,4 +3,5 @@ venv
 __pycache__
 envcleric
 config.json
+boot_config.json
 deprecated
