@@ -22,15 +22,23 @@ def cast_ch():
     time.sleep(0.2)
     keyboard.release('1')
 
-def press_binding(key):
-    if key == 'space':
-        keyboard.press(Key.space)
-    else:
+key_map = {
+    'space': Key.space,
+    'ctrl': Key.ctrl,
+    'shift': Key.shift,
+    'alt': Key.alt,
+}
+
+def press_binding(keysString="shift+x"):
+    keys = keysString.split('+')
+    for key in keys:
+        if key in key_map:
+            key = key_map[key]
         keyboard.press(key)
     time.sleep(0.2)
-    if key == 'space':
-        keyboard.release(Key.space)
-    else:
+    for key in keys:
+        if key in key_map:
+            key = key_map[key]
         keyboard.release(key)
 
 # while True:

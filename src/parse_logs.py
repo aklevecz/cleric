@@ -89,6 +89,8 @@ action_map = {
     "kill goodegg": assist_ma,
 }
 
+ten_mintues_in_seconds = 60 * 10
+
 class LogFileHandler(FileSystemEventHandler):
     def __init__(self, log_file_path, guy_name, match_words, word_bindings):
         self.log_file_path = log_file_path
@@ -96,9 +98,17 @@ class LogFileHandler(FileSystemEventHandler):
         self.match_words = match_words if isinstance(match_words, list) else [match_words]
         self.word_bindings = word_bindings if isinstance(word_bindings, dict) else {}
         self.file_position = os.path.getsize(log_file_path)  # Start at the end of the file
+        self.last_timestamp = time.time()
+
+    def afk_check(self):
+        current_timestamp = time.time()
+        if current_timestamp - self.last_timestamp > ten_mintues_in_seconds:
+            self.last_timestamp = current_timestamp
+            press_binding('k')
 
     def on_modified(self, event):
         if event.src_path == self.log_file_path:
+            self.afk_check()
             with open(self.log_file_path, 'r') as file:
                 file.seek(self.file_position)
                 new_lines = file.readlines()
@@ -107,6 +117,7 @@ class LogFileHandler(FileSystemEventHandler):
                     # print(line, end='')
                     for wordsString in self.word_bindings.keys():
                         if wordsString in line.lower():
+                            time.sleep(random.uniform(2, 4))
                             keyBinding = self.word_bindings[wordsString]
                             print(f"Pressing key binding: {keyBinding} for trigger words: {wordsString}")
                             press_binding(keyBinding)
