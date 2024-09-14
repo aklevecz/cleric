@@ -6,7 +6,7 @@ import keyboard
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from press import cast_ch, duck, sit, press_binding
-from configure import load_config
+from configure import load_config, save_config
 from red_percentage import get_percentage_of_guy
 
 stop_event = threading.Event()
@@ -15,15 +15,8 @@ tail_thread = None
 health_check_thread = None
 current_guy_name = ""
 
-def tag_nearest_enemy():
-    keyboard.press('q')
-    time.sleep(0.2)
-    keyboard.release('q')
-    keyboard.press('z')
-    time.sleep(0.2)
-    keyboard.release('z')
-
-def check_health_and_ch(guy_name):
+# Periodic health checking and healing
+def check_health_and_heal(guy_name, heal_threshold, heal_binding):
     try:
         print("Checking health...")
         percentage = get_percentage_of_guy(guy_name)
@@ -32,19 +25,22 @@ def check_health_and_ch(guy_name):
         if percentage == 0.0:
             print("Screenshot error or guy is dead, do nothing")
             return
-        if percentage < 90.0:
-            cast_ch()
+        if percentage < heal_threshold:
+            press_binding(heal_binding)
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def periodic_health_check(guy_name):
+def periodic_health_check(guy_name, config):
     while not stop_event.is_set():
-        check_health_and_ch(guy_name)
+        check_health_and_heal(guy_name, config['heal_threshold'], config['heal_binding'])
         # tag_nearest_enemy()
         # random_sleep_interval = random.randint(5, 20) 
         random_sleep_interval = 2
         time.sleep(random_sleep_interval)  # Wait for 2 seconds before the next check
 
+# Periodic health checking and healing end
+
+# Not being used
 def cast_or_duck_ch_stand(guy_name):
     try:
         print("Casting spell...")
@@ -54,15 +50,6 @@ def cast_or_duck_ch_stand(guy_name):
         print(f"Red progress: {percentage:.2f}%")
         if percentage > 85.0:
             duck()
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-def assist_ma(guy_name):
-    try:
-        print("Assisting MA...")
-        keyboard.press('e')
-        time.sleep(0.2)
-        keyboard.release('e')   
     except Exception as e:
         print(f"An error occurred: {e}")
 
@@ -82,12 +69,6 @@ def cast_or_duck_ch(guy_name):
             sit()
     except Exception as e:
         print(f"An error occurred: {e}")
-
-action_map = {
-    "go goodegg": cast_or_duck_ch,
-    "i need heals goodegg": cast_or_duck_ch_stand,
-    "kill goodegg": assist_ma,
-}
 
 ten_mintues_in_seconds = 60 * 10
 
@@ -117,7 +98,7 @@ class LogFileHandler(FileSystemEventHandler):
                     # print(line, end='')
                     for wordsString in self.word_bindings.keys():
                         if wordsString in line.lower():
-                            time.sleep(random.uniform(2, 4))
+                            time.sleep(random.uniform(0, 2))
                             keyBinding = self.word_bindings[wordsString]
                             print(f"Pressing key binding: {keyBinding} for trigger words: {wordsString}")
                             press_binding(keyBinding)
@@ -144,19 +125,6 @@ def tail_log_file(log_file_path, guy_name, match_words, word_bindings):
         observer.stop()
     observer.join()
 
-def start_tail(log_file_path, guy_name, match_words, word_bindings):
-    global tail_thread, health_check_thread
-    stop_event.clear()
-    current_guy_name = guy_name
-    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings))
-    tail_thread.start()
-    # health_check_thread = threading.Thread(target=periodic_health_check, args=(current_guy_name,))
-    # health_check_thread.start()
-    print("Log file parsing started.")
-    print(f"Now monitoring: {current_guy_name}")
-    print(f"Match words: {match_words}")
-    print(f"Word bindings: {word_bindings}")
-
 def stop_tail():
     global observer, tail_thread, health_check_thread
     if observer:
@@ -166,32 +134,52 @@ def stop_tail():
         tail_thread.join()
     if health_check_thread:
         health_check_thread.join()
-    print("Log file parsing and health check stopped.")
+    print("Log file parsing and/or health check stopped.")
+
+def get_default_guy_name(config):
+    for k, v in config.items():
+        if isinstance(v, dict):
+            if "left" in v:
+                return config['default_guy']
+                break
+    return ""
+
+def start_tail(log_file_path, guy_name, match_words, word_bindings):
+    global tail_thread
+    if tail_thread:
+        print("Stopping previous tail thread...")
+        stop_tail()
+    stop_event.clear()
+    current_guy_name = guy_name
+    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings))
+    tail_thread.start()
+    print("Log file parsing started.")
+    print(f"Now monitoring: {current_guy_name}")
+    print(f"Match words: {match_words}")
+    print(f"Word bindings: {word_bindings}")
 
 # Keybinding functions
 def start_tail_keybinding():
     config = load_config()
     log_file_path = config['log_file']
-    # Refactor redundant code
-    guy_name = ""
-    for k, v in config.items():
-        if isinstance(v, dict):
-            if "left" in v:
-                guy_name = input("Enter the name of the guy you're watching: ")
-                break
+    guy_name = get_default_guy_name(config)
     start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'])
+
+def start_health_check(guy_name, config):
+    global health_check_thread
+    print("Starting health check...")
+    if health_check_thread:
+        print("Stopping previous health check thread...")
+        stop_tail()
+    stop_event.clear()
+    health_check_thread = threading.Thread(target=periodic_health_check, args=(guy_name, config))
+    health_check_thread.start()
 
 def start_health_check_keybinding():
     config = load_config()
-    # Refactor redundant code
-    guy_name = ""
-    for k, v in config.items():
-        if isinstance(v, dict):
-            if "left" in v:
-                guy_name = input("Enter the name of the guy you're watching: ")
-                break
-    health_check_thread = threading.Thread(target=periodic_health_check, args=(guy_name,))
-    health_check_thread.start()
+    guy_name = get_default_guy_name(config)
+    start_health_check(guy_name, config)
+
 
 def stop_tail_keybinding():
     stop_tail()
@@ -199,13 +187,17 @@ def stop_tail_keybinding():
 def change_person_keybinding():
     stop_tail()
     change_monitored_person()
-    config = load_config()
-    start_tail(config['log_file'], current_guy_name, config['match_words'], config['word_bindings'])
 
 def change_monitored_person():
     global current_guy_name
     new_guy_name = input("Enter the name of the new guy you're watching: ")
     current_guy_name = new_guy_name
+    config = load_config()
+    config['default_guy'] = new_guy_name
+    print(f"Default guy changed to: {new_guy_name}")
+    save_config(config)
+    start_tail(config['log_file'], current_guy_name, config['match_words'], config['word_bindings'])
+
     print(f"Now monitoring: {current_guy_name}")
 
 if __name__ == "__main__":

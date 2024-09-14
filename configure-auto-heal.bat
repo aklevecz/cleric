@@ -1,4 +1,3 @@
-cd /d %~dp0
 @echo off
 
 if not defined PYTHON (set PYTHON=python)
@@ -17,7 +16,7 @@ if defined PROFILE (set PYTHON=%PYTHON% -m scalene --off --cpu --gpu --profile-a
 echo Using Python %PYTHON%
 
 :launch
-%PYTHON% src/open-eq.py --run
+%PYTHON% src/configure.py --auto-heal
 
 :end
 pause

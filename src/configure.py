@@ -95,6 +95,7 @@ def create_bounding_box():
 
     config = load_config()
     config[name.strip()] = {'left': left, 'top': top, 'width': width, 'height': height}
+    config['default_guy'] = name.strip()
     save_config(config)
     
     print(f"Bounding box '{name}' saved: left={left}, top={top}, width={width}, height={height}")
@@ -140,12 +141,26 @@ def words_to_binding(word=None, binding=None):
     save_config(config)
     print(f"Word binding saved: {word} -> {binding}")
 
+def auto_heal():
+    config = load_config()
+    heal_threshold = config['heal_threshold'] if 'heal_threshold' in config else 0
+    heal_binding = config['heal_binding'] if 'heal_binding' in config else ''
+
+    heal_threshold = int(input(f"Enter the health threshold to auto-heal at (currently {heal_threshold}%): "))
+    heal_binding = input(f"Enter the key binding to use for healing (currently {heal_binding}): ")
+
+    config['heal_threshold'] = heal_threshold
+    config['heal_binding'] = heal_binding
+    save_config(config)
+    print(f"Auto-heal settings saved: threshold={heal_threshold}%, binding={heal_binding}")
+
 def main():
     parser = argparse.ArgumentParser(description="Red Progress Bar Analyzer")
     parser.add_argument('--create', action='store_true', help="Create a new bounding box")
     parser.add_argument('--log-file', nargs='?', const='', type=str, help="Specify the log file to use")
     parser.add_argument('--match-word', nargs='?', const='', type=str, help="Specify a word to match in the log file")
     parser.add_argument('--word-binding', nargs='?', const='', type=str, help="Specify a word to match in the log file and the binding on your hotbar")
+    parser.add_argument('--auto-heal', action='store_true', help="Automatically heal when health is low")
     args = parser.parse_args()
 
     if args.create:
@@ -156,6 +171,8 @@ def main():
         save_match_word(args.match_word if args.match_word != '' else None)
     elif args.word_binding is not None:
         words_to_binding(args.word_binding if args.word_binding != '' else None)
+    elif args.auto_heal:
+        auto_heal()
     else:
         parser.print_help()
 
