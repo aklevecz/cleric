@@ -5,18 +5,6 @@
         "width": 161.0,
         "height": 12.0
     },
-    "other_guy_name": {
-        "left": 1420.0,
-        "top": 706.0,
-        "width": 162.0,
-        "height": 10.0
-    },
-    "other_other_guy_name": {
-        "left": 1450.0,
-        "top": 681.0,
-        "width": 160.0,
-        "height": 16.0
-    },
     "log_file": "C:\\Users\\Public\\Game Company\\Installed Games\\LemonQuest\\Logs\\lemonlog_Grok_tweeker.txt",
     "match_words": [
         "go guy_name",

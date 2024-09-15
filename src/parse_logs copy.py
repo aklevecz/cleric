@@ -9,35 +9,37 @@ from press import cast_ch, duck, sit, press_binding
 from configure import load_config, save_config
 from red_percentage import get_percentage_of_guy
 from queue import Queue
-from collections import deque
 
 stop_event = threading.Event()
 observer = None
 tail_thread = None
 health_check_thread = None
 current_guy_name = ""
-log_deque = deque(maxlen=1000)  # Store last 1000 log messages
+log_queue = Queue()
 
 def log_message(message):
     print(message)
-    log_deque.append(message)
+    log_queue.put(message)
 
 def get_logs():
-    return "\n".join(log_deque)
+    logs = []
+    while not log_queue.empty():
+        logs.append(log_queue.get())
+    return "\n".join(logs)
 # Periodic health checking and healing
 def check_health_and_heal(guy_name, heal_threshold, heal_binding):
     try:
-        log_message(f"Checking health for {guy_name}...")
+        print("Checking health...")
         percentage = get_percentage_of_guy(guy_name)
-        log_message(f"Red progress: {percentage:.2f}%")
+        print(f"Red progress: {percentage:.2f}%")
 
         if percentage == 0.0:
-            log_message("Screenshot error or guy is dead, do nothing")
+            print("Screenshot error or guy is dead, do nothing")
             return
         if percentage < heal_threshold:
             press_binding(heal_binding)
     except Exception as e:
-        log_message(f"An error occurred: {e}")
+        print(f"An error occurred: {e}")
 
 def periodic_health_check(guy_name, config):
     while not stop_event.is_set():
@@ -52,23 +54,23 @@ def periodic_health_check(guy_name, config):
 # Not being used
 def cast_or_duck_ch_stand(guy_name):
     try:
-        log_message("Casting spell...")
+        print("Casting spell...")
         cast_ch()
         time.sleep(9)
         percentage = get_percentage_of_guy(guy_name)
-        log_message(f"Red progress: {percentage:.2f}%")
+        print(f"Red progress: {percentage:.2f}%")
         if percentage > 85.0:
             duck()
     except Exception as e:
-        log_message(f"An error occurred: {e}")
+        print(f"An error occurred: {e}")
 
 def cast_or_duck_ch(guy_name):
     try:
-        log_message("Casting spell...")
+        print("Casting spell...")
         cast_ch()
         time.sleep(9)
         percentage = get_percentage_of_guy(guy_name)
-        log_message(f"Red progress: {percentage:.2f}%")
+        print(f"Red progress: {percentage:.2f}%")
         if percentage > 85.0:
             duck()
             time.sleep(1)
@@ -77,7 +79,7 @@ def cast_or_duck_ch(guy_name):
             time.sleep(2)
             sit()
     except Exception as e:
-        log_message(f"An error occurred: {e}")
+        print(f"An error occurred: {e}")
 
 ten_mintues_in_seconds = 60 * 10
 
@@ -104,12 +106,12 @@ class LogFileHandler(FileSystemEventHandler):
                 new_lines = file.readlines()
                 self.file_position = file.tell()
                 for line in new_lines:
-                    log_message(line)
+                    # print(line, end='')
                     for wordsString in self.word_bindings.keys():
                         if wordsString in line.lower():
                             time.sleep(random.uniform(0, 2))
                             keyBinding = self.word_bindings[wordsString]
-                            log_message(f"Pressing key binding: {keyBinding} for trigger words: {wordsString}")
+                            print(f"Pressing key binding: {keyBinding} for trigger words: {wordsString}")
                             press_binding(keyBinding)
                             break
 
@@ -143,7 +145,7 @@ def stop_tail():
         tail_thread.join()
     if health_check_thread:
         health_check_thread.join()
-    log_message("Log file parsing and/or health check stopped.")
+    print("Log file parsing and/or health check stopped.")
 
 def get_default_guy_name(config):
     for k, v in config.items():
@@ -156,16 +158,16 @@ def get_default_guy_name(config):
 def start_tail(log_file_path, guy_name, match_words, word_bindings):
     global tail_thread
     if tail_thread:
-        log_message("Stopping previous tail thread...")
+        print("Stopping previous tail thread...")
         stop_tail()
     stop_event.clear()
     current_guy_name = guy_name
     tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings))
     tail_thread.start()
-    log_message("Log file parsing started.")
-    log_message(f"Now monitoring: {current_guy_name}")
-    log_message(f"Match words: {match_words}")
-    log_message(f"Word bindings: {word_bindings}")
+    print("Log file parsing started.")
+    print(f"Now monitoring: {current_guy_name}")
+    print(f"Match words: {match_words}")
+    print(f"Word bindings: {word_bindings}")
 
 # Keybinding functions
 def start_tail_keybinding():
@@ -176,9 +178,9 @@ def start_tail_keybinding():
 
 def start_health_check(guy_name, config):
     global health_check_thread
-    log_message("Starting health check...")
+    print("Starting health check...")
     if health_check_thread:
-        log_message("Stopping previous health check thread...")
+        print("Stopping previous health check thread...")
         stop_tail()
     stop_event.clear()
     health_check_thread = threading.Thread(target=periodic_health_check, args=(guy_name, config))
@@ -203,11 +205,11 @@ def change_monitored_person():
     current_guy_name = new_guy_name
     config = load_config()
     config['default_guy'] = new_guy_name
-    log_message(f"Default guy changed to: {new_guy_name}")
+    print(f"Default guy changed to: {new_guy_name}")
     save_config(config)
     start_tail(config['log_file'], current_guy_name, config['match_words'], config['word_bindings'])
 
-    log_message(f"Now monitoring: {current_guy_name}")
+    print(f"Now monitoring: {current_guy_name}")
 
 if __name__ == "__main__":
     # Set up keybindings
