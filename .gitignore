@@ -5,3 +5,5 @@ envcleric
 config.json
 boot_config.json
 deprecated
+detected_red_areas.png
+red_progress.png
