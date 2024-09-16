@@ -8,17 +8,17 @@ import webbrowser
 # ------------------------ Configuration Management ------------------------ #
 
 CONFIG_FILE = 'config.json'
-initial_config = None  # Declare initial_config globally
 
 def load_config():
     print(f"LOADING CONFIG FROM {CONFIG_FILE}")
     if not os.path.exists(CONFIG_FILE):
         default_config = {
             "log_file": "",
-            "default_guy": "mollo",
             "heal_threshold": 0,
             "heal_binding": "",
-            "bounding_boxes": {},
+            "default_guy": "badegg",
+            "badegg": {"left": 0, "top": 0, "width": 0, "height": 0},
+            "mollo": {"left": 0, "top": 0, "width": 0, "height": 0},
             "match_words": [],
             "word_bindings": {}
         }
@@ -32,10 +32,11 @@ def load_config():
                 print(f"Error parsing config.json: {e}")
                 return {
                     "log_file": "",
-                    "default_guy": "mollo",
                     "heal_threshold": 0,
                     "heal_binding": "",
-                    "bounding_boxes": {},
+                    "default_guy": "badegg",
+                    "badegg": {"left": 0, "top": 0, "width": 0, "height": 0},
+                    "mollo": {"left": 0, "top": 0, "width": 0, "height": 0},
                     "match_words": [],
                     "word_bindings": {}
                 }
@@ -78,105 +79,91 @@ def is_bounding_box(item):
 # ------------------------ UI Creation ------------------------ #
 
 def create_ui():
-    global initial_config
-    initial_config = load_config()
-
     with gr.Blocks(css=".gradio-container {max-width: 800px; margin: auto;}") as demo:
         all_components = []
-
-        # Extract bounding box keys from the initial configuration
-        bounding_box_keys = sorted(initial_config.get('bounding_boxes', {}).keys())
-
+        
         with gr.Tabs():
             with gr.TabItem("General Settings"):
                 with gr.Column():
                     log_file = gr.Textbox(label="Log File Path", placeholder="Enter log file path", lines=1)
-                    default_guy = gr.Dropdown(label="Default Guy", choices=bounding_box_keys)
-                    all_components.extend([log_file, default_guy])
-
-            with gr.TabItem("Auto Heal Settings"):
-                with gr.Column():
                     heal_threshold = gr.Number(label="Heal Threshold", precision=0)
                     heal_binding = gr.Textbox(label="Heal Binding", placeholder="Enter heal binding key", lines=1)
-                    all_components.extend([heal_threshold, heal_binding])
-
+                    default_guy = gr.Dropdown(label="Default Guy", choices=["badegg", "mollo"])
+                    all_components.extend([log_file, heal_threshold, heal_binding, default_guy])
+        
             with gr.TabItem("Bounding Box Settings"):
                 bounding_boxes = {}
-                for key in bounding_box_keys:
-                    with gr.Column():
-                        gr.Markdown(f"### {key.capitalize()} Bounding Box")
-                        left = gr.Number(label="Left", precision=0)
-                        top = gr.Number(label="Top", precision=0)
-                        width = gr.Number(label="Width", precision=0)
-                        height = gr.Number(label="Height", precision=0)
-                        bounding_boxes[key] = {"left": left, "top": top, "width": width, "height": height}
-                        all_components.extend([left, top, width, height])
-
+                initial_config = load_config()
+                for key in initial_config:
+                    if is_bounding_box(initial_config[key]):
+                        with gr.Column():
+                            gr.Markdown(f"### {key.capitalize()} Bounding Box")
+                            left = gr.Number(label="Left", precision=0)
+                            top = gr.Number(label="Top", precision=0)
+                            width = gr.Number(label="Width", precision=0)
+                            height = gr.Number(label="Height", precision=0)
+                            bounding_boxes[key] = {"left": left, "top": top, "width": width, "height": height}
+                            all_components.extend([left, top, width, height])
+        
             with gr.TabItem("Word Settings"):
                 with gr.Column():
                     match_words = gr.Textbox(label="Match Words", placeholder="Enter one word per line", lines=5)
                     all_components.append(match_words)
-
+                    
                     gr.Markdown("### Word Bindings")
                     word_bindings_list = gr.CheckboxGroup(label="Existing Word Bindings")
                     selected_binding_value = gr.Textbox(label="Selected Binding Value", interactive=False, lines=1)
                     all_components.extend([word_bindings_list, selected_binding_value])
-
+                    
                     with gr.Row():
                         new_word = gr.Textbox(label="New Word", placeholder="Enter new word", lines=1)
                         new_binding = gr.Textbox(label="New Binding", placeholder="Enter binding for the new word", lines=1)
                     all_components.extend([new_word, new_binding])
-
+                    
                     with gr.Row():
                         add_binding_button = gr.Button("Add Binding")
                         remove_binding_button = gr.Button("Remove Selected Binding(s)")
-
+                    
                     binding_status = gr.Textbox(label="Binding Status", interactive=False, lines=1)
                     all_components.append(binding_status)
-
+        
             with gr.TabItem("Log Output"):
                 log_output = gr.TextArea(label="Log Output", interactive=False, lines=20)
                 all_components.append(log_output)
-
+        
         with gr.Row():
             save_button = gr.Button("Save Configuration")
             status_box = gr.Textbox(label="Status", interactive=False, lines=1)
-
+        
         with gr.Row():
             start_parse_button = gr.Button("Start Log Parsing")
             stop_parse_button = gr.Button("Stop Log Parsing")
             parse_status = gr.Textbox(label="Parsing Status", interactive=False, lines=1)
-
+        
         with gr.Row():
             start_heal_button = gr.Button("Start Health Check")
             stop_heal_button = gr.Button("Stop Health Check")
             heal_status = gr.Textbox(label="Health Check Status", interactive=False, lines=1)
-
+        
         def load_config_ui():
-            config = initial_config  # Use the initial configuration
+            config = load_config()
+            print(f"Loading UI with config: {config}")
             outputs = []
 
             # General Settings
-            outputs.append(config.get("log_file", ""))  # log_file
-
-            # Extract and sort bounding box keys for default_guy choices
-            bounding_box_keys = sorted(config.get('bounding_boxes', {}).keys())
-            default_guy_value = config.get("default_guy", "")
-            if default_guy_value not in bounding_box_keys:
-                default_guy_value = bounding_box_keys[0] if bounding_box_keys else ""
-            outputs.append(gr.update(choices=bounding_box_keys, value=default_guy_value))  # default_guy
-
-            # Auto Heal Settings
-            outputs.append(config.get("heal_threshold", 0))  # heal_threshold
-            outputs.append(config.get("heal_binding", ""))   # heal_binding
+            outputs.append(config.get("log_file", ""))
+            outputs.append(config.get("heal_threshold", 0))
+            outputs.append(config.get("heal_binding", ""))
+            outputs.append(config.get("default_guy", "badegg"))
 
             # Bounding Box Settings
-            for key in bounding_box_keys:
-                bbox = config['bounding_boxes'].get(key, {})
-                outputs.append(bbox.get("left", 0))
-                outputs.append(bbox.get("top", 0))
-                outputs.append(bbox.get("width", 0))
-                outputs.append(bbox.get("height", 0))
+            for key in config:
+                if is_bounding_box(config.get(key)):
+                    bbox = config[key]
+                    outputs.append(bbox.get("left", 0))
+                    outputs.append(bbox.get("top", 0))
+                    outputs.append(bbox.get("width", 0))
+                    outputs.append(bbox.get("height", 0))
 
             # Word Settings
             outputs.append("\n".join(config.get("match_words", [])))
@@ -200,35 +187,32 @@ def create_ui():
                 # General Settings
                 new_config["log_file"] = args[arg_index]
                 arg_index += 1
-                new_config["default_guy"] = args[arg_index]
-                arg_index += 1
-
-                # Auto Heal Settings
                 new_config["heal_threshold"] = args[arg_index]
                 arg_index += 1
                 new_config["heal_binding"] = args[arg_index]
                 arg_index += 1
+                new_config["default_guy"] = args[arg_index]
+                arg_index += 1
 
                 # Bounding Box Settings
-                bounding_box_keys = sorted(initial_config.get('bounding_boxes', {}).keys())
-                new_config['bounding_boxes'] = {}
-
-                for key in bounding_box_keys:
-                    new_config['bounding_boxes'][key] = {
-                        "left": int(args[arg_index]),
-                        "top": int(args[arg_index + 1]),
-                        "width": int(args[arg_index + 2]),
-                        "height": int(args[arg_index + 3])
-                    }
-                    arg_index += 4
+                config = load_config()
+                for key in config:
+                    if is_bounding_box(config[key]):
+                        new_config[key] = {
+                            "left": int(args[arg_index]),
+                            "top": int(args[arg_index + 1]),
+                            "width": int(args[arg_index + 2]),
+                            "height": int(args[arg_index + 3])
+                        }
+                        arg_index += 4
 
                 # Word Settings
                 match_words_val = args[arg_index]
-                arg_index += 1
+                arg_index +=1
                 new_config["match_words"] = [word.strip() for word in match_words_val.split('\n') if word.strip()]
 
                 # Preserve word_bindings
-                new_config["word_bindings"] = initial_config.get("word_bindings", {})
+                new_config["word_bindings"] = config.get("word_bindings", {})
 
                 # Save the new configuration
                 save_config(new_config)
@@ -333,14 +317,7 @@ def create_ui():
             outputs=all_components
         )
 
-        # Optionally, update logs periodically
-        def update_logs():
-            return get_logs()
-        demo.load(fn=update_logs, inputs=None, outputs=log_output, every=1)
-
         return demo
-
-    return demo
 
 # ------------------------ Launch Interface ------------------------ #
 

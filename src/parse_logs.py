@@ -104,7 +104,7 @@ class LogFileHandler(FileSystemEventHandler):
                 new_lines = file.readlines()
                 self.file_position = file.tell()
                 for line in new_lines:
-                    log_message(line)
+                    # log_message(line)
                     for wordsString in self.word_bindings.keys():
                         if wordsString in line.lower():
                             time.sleep(random.uniform(0, 2))

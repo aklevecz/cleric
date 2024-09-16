@@ -1,0 +1,20 @@
+{
+    "log_file": "C:\\Users\\Public\\Daybreak Game Company\\Installed Games\\EverQuest\\Logs\\eqlog_Badegg_teek.txt",
+    "heal_threshold": 90,
+    "heal_binding": "1",
+    "default_guy": "badegg",
+    "badegg": {
+        "left": 161,
+        "top": 12,
+        "width": 1731,
+        "height": 690
+    },
+    "match_words": [
+        "go guy_name",
+        "kill guy_name",
+        "heeloman"
+    ],
+    "word_bindings": {
+        "wewe": "wewe"
+    }
+}

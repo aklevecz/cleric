@@ -1,0 +1,36 @@
+{
+    "log_file": "C:\\Users\\Public\\Daybreak Game Company\\Installed Games\\EverQuest\\Logs\\eqlog_Badegg_teek.txt",
+    "heal_threshold": 73,
+    "heal_binding": "2",
+    "default_guy": "wewe",
+    "badegg": {
+        "left": 1453,
+        "top": 763,
+        "width": 161,
+        "height": 9
+    },
+    "mollo": {
+        "left": 161,
+        "top": 32,
+        "width": 1731,
+        "height": 690
+    },
+    "lollo": {
+        "left": 161,
+        "top": 32,
+        "width": 1731,
+        "height": 690
+    },
+    "wewe": {
+        "left": 1455,
+        "top": 791,
+        "width": 160,
+        "height": 19
+    },
+    "match_words": [
+        "go guy_name"
+    ],
+    "word_bindings": {
+        "hellome": "2"
+    }
+}
