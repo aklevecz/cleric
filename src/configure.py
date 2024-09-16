@@ -38,7 +38,7 @@ def load_config():
                 if 'bounding_boxes' not in saved_config:
                     print("Fixing old config file...")
                     # find all keys that have a bounding box
-                    bounding_boxes = {k: v for k, v in saved_config.items() if 'left' in v}
+                    bounding_boxes = {k: v for k, v in saved_config.items() if isinstance(v, dict) and 'left' in v}
                     saved_config['bounding_boxes'] = bounding_boxes
                     # remove all keys that have a bounding box
                     for k in bounding_boxes.keys():
