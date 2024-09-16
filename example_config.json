@@ -1,13 +1,22 @@
 {
-    "guy_name": {
-        "left": 1452.0,
-        "top": 649.0,
-        "width": 161.0,
-        "height": 12.0
+    "bounding_boxes": {
+        "guy_name": {
+            "left": 1452.0,
+            "top": 649.0,
+            "width": 161.0,
+            "height": 12.0
+        }
     },
     "log_file": "C:\\Users\\Public\\Game Company\\Installed Games\\LemonQuest\\Logs\\lemonlog_Grok_tweeker.txt",
     "match_words": [
-        "go guy_name",
-        "kill guy_name"
-    ]
+        "go guy_name"
+    ],
+    "default_guy": "guy_name",
+    "heal_threshold": 0,
+    "heal_binding": "",
+    "word_bindings": {
+        "assist": "3",
+        "heal": "2",
+        "target": "f"
+    }
 }

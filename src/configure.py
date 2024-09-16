@@ -9,6 +9,45 @@ import pandas as pd
 from mss import mss
 import time
 
+CONFIG_FILE = 'config.json'
+
+default_config = {
+            "log_file": "",
+            "default_guy": "mollo",
+            "heal_threshold": 0,
+            "heal_binding": "",
+            "bounding_boxes": {"mollo": {"left": 0, "top": 0, "width": 0, "height": 0}},
+            "match_words": [],
+            "word_bindings": {},
+            "verbose": False
+        }
+def load_config():
+    if not os.path.exists(CONFIG_FILE):
+        default_config.copy(),
+        save_config(default_config.copy())
+        return default_config.copy()
+    else:
+        with open(CONFIG_FILE, 'r') as f:
+            try:
+                saved_config = json.load(f)
+                if 'verbose' not in saved_config:
+                    saved_config['verbose'] = False
+                    save_config(saved_config)
+
+                # fix old config files
+                if 'bounding_boxes' not in saved_config:
+                    print("Fixing old config file...")
+                    # find all keys that have a bounding box
+                    bounding_boxes = {k: v for k, v in saved_config.items() if 'left' in v}
+                    saved_config['bounding_boxes'] = bounding_boxes
+                    # remove all keys that have a bounding box
+                    for k in bounding_boxes.keys():
+                        saved_config.pop(k)
+                    save_config(saved_config)
+                return saved_config
+            except json.JSONDecodeError as e:
+                print(f"Error parsing config.json: {e}")
+                return default_config.copy()
 # USES MSS IN FAVOR OF PYAUTOGUI -- BUT SHOULD NOT BE USED FOR SETUP
 class ScreenSelector:
     def __init__(self, master):
@@ -61,15 +100,15 @@ def save_config(config, filename='config.json'):
     with open(file_path, 'w') as f:
         json.dump(config, f, indent=4)
 
-def load_config(filename='config.json'):
-    """Load the configuration from a JSON file."""
-    # script_dir = os.path.dirname(__file__)
-    # file_path = os.path.join(script_dir, filename)
-    file_path = filename
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as f:
-            return json.load(f)
-    return {}
+# def load_config(filename='config.json'):
+#     """Load the configuration from a JSON file."""
+#     # script_dir = os.path.dirname(__file__)
+#     # file_path = os.path.join(script_dir, filename)
+#     file_path = filename
+#     if os.path.exists(file_path):
+#         with open(file_path, 'r') as f:
+#             return json.load(f)
+#     return {}
 
 # def save_config(config, filename='config.json'):
 #     """Save the configuration to a JSON file."""
@@ -94,7 +133,7 @@ def create_bounding_box():
     left, top, width, height = app.get_scaled_coordinates()
 
     config = load_config()
-    config[name.strip()] = {'left': left, 'top': top, 'width': width, 'height': height}
+    config['bounding_boxes'][name.strip()] = {'left': left, 'top': top, 'width': width, 'height': height}
     config['default_guy'] = name.strip()
     save_config(config)
     

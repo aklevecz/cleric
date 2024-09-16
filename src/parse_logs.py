@@ -24,6 +24,7 @@ def log_message(message):
 
 def get_logs():
     return "\n".join(log_deque)
+
 # Periodic health checking and healing
 def check_health_and_heal(guy_name, heal_threshold, heal_binding):
     try:
@@ -62,6 +63,7 @@ def cast_or_duck_ch_stand(guy_name):
     except Exception as e:
         log_message(f"An error occurred: {e}")
 
+# Main CH should be moved to a more flexible binding
 def cast_or_duck_ch(guy_name):
     try:
         log_message("Casting spell...")
@@ -82,11 +84,13 @@ def cast_or_duck_ch(guy_name):
 ten_mintues_in_seconds = 60 * 10
 
 class LogFileHandler(FileSystemEventHandler):
-    def __init__(self, log_file_path, guy_name, match_words, word_bindings):
+    def __init__(self, log_file_path, guy_name, match_words, word_bindings, verbose):
         self.log_file_path = log_file_path
         self.guy_name = guy_name
         self.match_words = match_words if isinstance(match_words, list) else [match_words]
         self.word_bindings = word_bindings if isinstance(word_bindings, dict) else {}
+        self.verbose = verbose
+
         self.file_position = os.path.getsize(log_file_path)  # Start at the end of the file
         self.last_timestamp = time.time()
 
@@ -104,7 +108,8 @@ class LogFileHandler(FileSystemEventHandler):
                 new_lines = file.readlines()
                 self.file_position = file.tell()
                 for line in new_lines:
-                    # log_message(line)
+                    if self.verbose:
+                        log_message(line)
                     for wordsString in self.word_bindings.keys():
                         if wordsString in line.lower():
                             time.sleep(random.uniform(0, 2))
@@ -121,9 +126,9 @@ class LogFileHandler(FileSystemEventHandler):
                                 # action_map[word](self.guy_name)
                             break
 
-def tail_log_file(log_file_path, guy_name, match_words, word_bindings):
+def tail_log_file(log_file_path, guy_name, match_words, word_bindings, verbose):
     global observer
-    event_handler = LogFileHandler(log_file_path, guy_name, match_words, word_bindings)
+    event_handler = LogFileHandler(log_file_path, guy_name, match_words, word_bindings, verbose)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(log_file_path), recursive=False)
     observer.start()
@@ -146,21 +151,22 @@ def stop_tail():
     log_message("Log file parsing and/or health check stopped.")
 
 def get_default_guy_name(config):
-    for k, v in config.items():
-        if isinstance(v, dict):
-            if "left" in v:
-                return config['default_guy']
-                break
-    return ""
+    return config['default_guy']
+    # for k, v in config.items():
+    #     if isinstance(v, dict):
+    #         if "left" in v:
+    #             return config['default_guy']
+    #             break
+    # return ""
 
-def start_tail(log_file_path, guy_name, match_words, word_bindings):
+def start_tail(log_file_path, guy_name, match_words, word_bindings, verbose=False):
     global tail_thread
     if tail_thread:
         log_message("Stopping previous tail thread...")
         stop_tail()
     stop_event.clear()
     current_guy_name = guy_name
-    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings))
+    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings, verbose))
     tail_thread.start()
     log_message("Log file parsing started.")
     log_message(f"Now monitoring: {current_guy_name}")
@@ -172,7 +178,7 @@ def start_tail_keybinding():
     config = load_config()
     log_file_path = config['log_file']
     guy_name = get_default_guy_name(config)
-    start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'])
+    start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'], config['verbose'])
 
 def start_health_check(guy_name, config):
     global health_check_thread
