@@ -304,4 +304,4 @@ if __name__ == "__main__":
     demo = create_ui()
     port = 7860
     threading.Thread(target=open_browser, args=(port,), daemon=True).start()
-    demo.launch(server_port=port)
+    demo.launch(server_name="0.0.0.0", server_port=port, share=True)

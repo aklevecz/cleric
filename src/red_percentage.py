@@ -94,11 +94,11 @@ def append_to_log(name, percentage, timestamp, filename='monitor_log.json'):
 def monitor_progress(name):
     """Monitor the progress of a specific bounding box and log the results."""
     config = load_config()
-    if name not in config:
+    if name not in config['bounding_boxes']:
         print(f"No bounding box named '{name}' found in the configuration.")
         return
     
-    bbox = config[name]
+    bbox = config['bounding_boxes'][name]
     print(f"Monitoring progress for '{name}'")
     
     while True:
@@ -117,11 +117,11 @@ def monitor_progress(name):
 
 def get_percentage_of_guy(name):
     config = load_config()
-    if name not in config:
+    if name not in config['bounding_boxes']:
         print(f"No bounding box named '{name}' found in the configuration.")
         return
     
-    bbox = config[name]
+    bbox = config['bounding_boxes'][name]
     print(f"Monitoring progress for '{name}'")
     
     screenshot = capture_screen_region_with_retry(bbox['left'], bbox['top'], bbox['width'], bbox['height'])
