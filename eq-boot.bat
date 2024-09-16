@@ -20,4 +20,3 @@ echo Using Python %PYTHON%
 %PYTHON% src/open-eq.py --run
 
 :end
-pause
