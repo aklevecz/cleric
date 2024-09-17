@@ -299,9 +299,13 @@ def open_browser(port):
     webbrowser.open(f"http://127.0.0.1:{port}")
 
 # ------------------------ Main Execution ------------------------ #
-
+import argparse
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="UI Options")
+    parser.add_argument('--host', type=str, default="127.0.0.1", help="Host IP address")
+    parser.add_argument('--share', action='store_true', help="Share the interface")
+    args = parser.parse_args()
     demo = create_ui()
     port = 7860
     threading.Thread(target=open_browser, args=(port,), daemon=True).start()
-    demo.launch(server_name="0.0.0.0", server_port=port, share=True)
+    demo.launch(server_name=args.host, server_port=port, share=args.share)
