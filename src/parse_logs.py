@@ -11,7 +11,8 @@ from red_percentage import get_percentage_of_guy
 from queue import Queue
 from collections import deque
 
-stop_event = threading.Event()
+tail_stop_event = threading.Event()
+health_check_stop_event = threading.Event()
 observer = None
 tail_thread = None
 health_check_thread = None
@@ -41,7 +42,7 @@ def check_health_and_heal(guy_name, heal_threshold, heal_binding):
         log_message(f"An error occurred: {e}")
 
 def periodic_health_check(guy_name, config):
-    while not stop_event.is_set():
+    while not health_check_stop_event.is_set():
         check_health_and_heal(guy_name, config['heal_threshold'], config['heal_binding'])
         # tag_nearest_enemy()
         # random_sleep_interval = random.randint(5, 20) 
@@ -133,7 +134,7 @@ def tail_log_file(log_file_path, guy_name, match_words, word_bindings, verbose):
     observer.schedule(event_handler, path=os.path.dirname(log_file_path), recursive=False)
     observer.start()
     try:
-        while not stop_event.is_set():
+        while not tail_stop_event.is_set():
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
@@ -143,12 +144,19 @@ def stop_tail():
     global observer, tail_thread, health_check_thread
     if observer:
         observer.stop()
-    stop_event.set()
+    tail_stop_event.set()
     if tail_thread:
         tail_thread.join()
+    # if health_check_thread:
+        # health_check_thread.join()
+    log_message("Log file parsing stopped.")
+
+def stop_health_check():
+    global health_check_thread
+    health_check_stop_event.set()
     if health_check_thread:
         health_check_thread.join()
-    log_message("Log file parsing and/or health check stopped.")
+    log_message("Health check stopped.")
 
 def get_default_guy_name(config):
     return config['default_guy']
@@ -164,7 +172,7 @@ def start_tail(log_file_path, guy_name, match_words, word_bindings, verbose=Fals
     if tail_thread:
         log_message("Stopping previous tail thread...")
         stop_tail()
-    stop_event.clear()
+    tail_stop_event.clear()
     current_guy_name = guy_name
     tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings, verbose))
     tail_thread.start()
@@ -185,8 +193,8 @@ def start_health_check(guy_name, config):
     log_message("Starting health check...")
     if health_check_thread:
         log_message("Stopping previous health check thread...")
-        stop_tail()
-    stop_event.clear()
+        stop_health_check()
+    health_check_stop_event.clear()
     health_check_thread = threading.Thread(target=periodic_health_check, args=(guy_name, config))
     health_check_thread.start()
 
