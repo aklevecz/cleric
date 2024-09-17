@@ -1,6 +1,13 @@
-from pynput.keyboard import Key, Controller
+from pynput.keyboard import Key, Controller as KeyboardController
+from pynput.mouse import Button, Controller as MouseController
+# from pynput import mouse as m
 import time
-keyboard = Controller()
+keyboard = KeyboardController()
+mouse = MouseController()
+
+# with m.Events() as events:
+#     for event in events:
+#         print(event)
 
 def sit():
     keyboard.press(Key.ctrl)
@@ -23,6 +30,23 @@ def cast_ch():
     keyboard.release('1')
 
 def press_binding(keysString="shift+x"):
+    # mouse
+    if "mouse" in keysString:
+        if "scroll" in keysString:
+            # keyString would be mouse.scroll(0, 1)
+            x, y = keysString.split('(')[1].split(')')[0].split(',')
+            x = int(x.strip())
+            y = int(y.strip())
+            mouse.scroll(x, y)
+            print(f"Scrolling {x}, {y}")
+            for _ in range(abs(y)):
+                if y > 0:
+                    mouse.scroll(x, 1)
+                else:
+                    mouse.scroll(x, -1)
+            return
+        
+    # keyboard
     keys = keysString.split('+')
     for key in keys:
         if key in key_map:
@@ -42,6 +66,11 @@ def tag_nearest_enemy():
     time.sleep(0.2)
     keyboard.release('z')
     
+mouse_map = {
+    'left': Button.left,
+    'right': Button.right,
+}
+
 key_map = {
     'space': Key.space,
     'ctrl': Key.ctrl,
