@@ -300,6 +300,18 @@ def open_browser(port):
 
 # ------------------------ Main Execution ------------------------ #
 import argparse
+import socket
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.254.254.254', 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = '127.0.0.1'
+    finally:
+        s.close()
+    return ip
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="UI Options")
     parser.add_argument('--host', type=str, default="127.0.0.1", help="Host IP address")
@@ -307,5 +319,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     demo = create_ui()
     port = 7860
+    if args.host == '0.0.0.0':
+        print(f"You can open the UI on another device with this url: http://{get_local_ip()}:{port}")
     threading.Thread(target=open_browser, args=(port,), daemon=True).start()
     demo.launch(server_name=args.host, server_port=port, share=args.share)
