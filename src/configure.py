@@ -14,6 +14,7 @@ CONFIG_FILE = 'config.json'
 default_config = {
             "log_file": "",
             "default_guy": "mollo",
+            "ch_threshold": 90,
             "heal_threshold": 0,
             "heal_binding": "",
             "bounding_boxes": {"mollo": {"left": 0, "top": 0, "width": 0, "height": 0}},
