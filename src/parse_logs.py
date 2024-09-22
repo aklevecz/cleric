@@ -17,6 +17,7 @@ observer = None
 tail_thread = None
 health_check_thread = None
 current_guy_name = ""
+heal_failure_count = 0
 log_deque = deque(maxlen=1000)  # Store last 1000 log messages
 
 def log_message(message):
@@ -35,19 +36,11 @@ def check_health_and_heal(guy_name, heal_threshold, heal_binding):
 
         if percentage == 0.0:
             log_message("Screenshot error or guy is dead, do nothing")
-            return
+            return 0.0
         if percentage < heal_threshold:
             press_binding(heal_binding)
     except Exception as e:
         log_message(f"An error occurred: {e}")
-
-def periodic_health_check(guy_name, config):
-    while not health_check_stop_event.is_set():
-        check_health_and_heal(guy_name, config['heal_threshold'], config['heal_binding'])
-        # tag_nearest_enemy()
-        # random_sleep_interval = random.randint(5, 20) 
-        random_sleep_interval = 2
-        time.sleep(random_sleep_interval)  # Wait for 2 seconds before the next check
 
 # Periodic health checking and healing end
 
@@ -188,6 +181,20 @@ def start_tail_keybinding():
     guy_name = get_default_guy_name(config)
     start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'], config['verbose'])
 
+def periodic_health_check(guy_name, config):
+    global heal_failure_count
+    while not health_check_stop_event.is_set():
+        res = check_health_and_heal(guy_name, config['heal_threshold'], config['heal_binding'])
+        if res == 0.0:
+            heal_failure_count += 1
+            if heal_failure_count > 10:
+                log_message("Guy is dead or something, stop healing.")
+                return
+        # tag_nearest_enemy()
+        # random_sleep_interval = random.randint(5, 20) 
+        random_sleep_interval = 2
+        time.sleep(random_sleep_interval)  # Wait for 2 seconds before the next check
+        
 def start_health_check(guy_name, config):
     global health_check_thread
     log_message("Starting health check...")
