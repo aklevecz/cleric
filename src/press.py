@@ -25,10 +25,10 @@ def duck():
     time.sleep(0.2)
     keyboard.release('x')
 
-def cast_ch():
-    keyboard.press('1')
+def cast_ch(binding="1"):
+    keyboard.press(binding)
     time.sleep(0.2)
-    keyboard.release('1')
+    keyboard.release(binding)
 
 def get_screen_info():
     root = tk.Tk()

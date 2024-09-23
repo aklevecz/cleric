@@ -47,14 +47,16 @@ def create_ui():
                 with gr.Column():
                     log_file = gr.Textbox(label="Log File Path", placeholder="Enter log file path", lines=1)
                     default_guy = gr.Dropdown(label="Default Guy", choices=bounding_box_keys)
+                    ch_binding = gr.Textbox(label="CH Key Binding", placeholder="Enter a CH key binding")
                     ch_threshold = gr.Number(label="CH Threshold", precision=0)
-                    all_components.extend([log_file, default_guy, ch_threshold])
+                    all_components.extend([log_file, default_guy, ch_binding, ch_threshold])
 
             with gr.TabItem("Auto Heal Settings"):
                 with gr.Column():
                     heal_threshold = gr.Number(label="Heal Threshold", precision=0)
+                    heal_duck_check_time = gr.Number(label="Number of seconds to check before ducking", precision=0)
                     heal_binding = gr.Textbox(label="Heal Binding", placeholder="Enter heal binding key", lines=1)
-                    all_components.extend([heal_threshold, heal_binding])
+                    all_components.extend([heal_threshold, heal_duck_check_time, heal_binding])
 
             with gr.TabItem("Bounding Box Settings"):
                 bounding_boxes = {}
@@ -120,9 +122,11 @@ def create_ui():
                 default_guy_value = bounding_box_keys[0] if bounding_box_keys else ""
             outputs.append(gr.update(choices=bounding_box_keys, value=default_guy_value))
 
+            outputs.append(config.get("ch_binding", ""))
             outputs.append(config.get("ch_threshold", 90))
             # Auto Heal Settings
             outputs.append(config.get("heal_threshold", 0))
+            outputs.append(config.get("heal_duck_check_time", 2))
             outputs.append(config.get("heal_binding", ""))
 
             # Bounding Box Settings
@@ -157,11 +161,15 @@ def create_ui():
                 arg_index += 1
                 new_config["default_guy"] = args[arg_index]
                 arg_index += 1
+                new_config["ch_binding"] = args[arg_index]
+                arg_index += 1
                 new_config["ch_threshold"] = args[arg_index]
                 arg_index += 1
 
                 # Auto Heal Settings
                 new_config["heal_threshold"] = args[arg_index]
+                arg_index += 1
+                new_config["heal_duck_check_time"] = args[arg_index]
                 arg_index += 1
                 new_config["heal_binding"] = args[arg_index]
                 arg_index += 1
