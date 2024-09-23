@@ -1,6 +1,7 @@
 from pynput.keyboard import Key, Controller as KeyboardController
 from pynput.mouse import Button, Controller as MouseController
 # from pynput import mouse as m
+import tkinter as tk
 import time
 keyboard = KeyboardController()
 mouse = MouseController()
@@ -24,39 +25,73 @@ def duck():
     time.sleep(0.2)
     keyboard.release('x')
 
-def cast_ch():
-    keyboard.press('1')
+def cast_ch(binding="1"):
+    keyboard.press(binding)
     time.sleep(0.2)
-    keyboard.release('1')
+    keyboard.release(binding)
+
+def get_screen_info():
+    root = tk.Tk()
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    root.withdraw()  # Hide the tkinter window
+
+    center_x = screen_width // 2
+    center_y = screen_height // 2
+
+    return {
+        "width": screen_width,
+        "height": screen_height,
+        "center_x": center_x,
+        "center_y": center_y
+    }
+
+screen_dim = get_screen_info()
+def center_mouse():
+    mouse.position = (screen_dim["center_x"], screen_dim["center_y"])
 
 def press_binding(keysString="shift+x"):
-    # mouse
-    if "mouse" in keysString:
-        if "scroll" in keysString:
-            # keyString would be mouse.scroll(0, 1)
-            x, y = keysString.split('(')[1].split(')')[0].split(',')
-            x = int(x.strip())
-            y = int(y.strip())
-            mouse.scroll(x, y)
-            print(f"Scrolling {x}, {y}")
-            for _ in range(abs(y)):
-                if y > 0:
-                    mouse.scroll(x, 1)
-                else:
-                    mouse.scroll(x, -1)
-            return
-        
-    # keyboard
-    keys = keysString.split('+')
-    for key in keys:
-        if key in key_map:
-            key = key_map[key]
-        keyboard.press(key)
-    time.sleep(0.2)
-    for key in keys:
-        if key in key_map:
-            key = key_map[key]
-        keyboard.release(key)
+    split_keys = keysString.split(';')
+    if split_keys[-1] == '':
+        split_keys.pop()
+    for keysString in split_keys:
+        # mouse
+        if "mouse" in keysString:
+            # move mouse to the center of the screen
+            center_mouse()
+            if "scroll" in keysString:
+                # keyString would be mouse.scroll(0, 1)
+                x, y = keysString.split('(')[1].split(')')[0].split(',')
+                x = int(x.strip())
+                y = int(y.strip())
+                mouse.scroll(x, y)
+                print(f"Scrolling {x}, {y}")
+                for _ in range(abs(y)):
+                    if y > 0:
+                        mouse.scroll(x, 1)
+                    else:
+                        mouse.scroll(x, -1)
+                time.sleep(1)
+            
+            if "mouse.click()" in keysString:
+                # keyString would be mouse.press(Button.left)
+                print("Clicking mouse")
+                mouse.press(Button.left)
+                time.sleep(0.2)
+                mouse.release(Button.left)
+        else:    
+            # keyboard
+            keys = keysString.split('+')
+            print(f"Pressing keys: {keys}")
+            for key in keys:
+                if key in key_map:
+                    key = key_map[key]
+                keyboard.press(key)
+            time.sleep(0.2)
+            for key in keys:
+                if key in key_map:
+                    key = key_map[key]
+                keyboard.release(key)
 
 def tag_nearest_enemy():
     keyboard.press('q')

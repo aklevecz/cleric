@@ -4,8 +4,8 @@ import os
 import threading
 import time
 import webbrowser
-from configure import load_config, save_config
-from parse_logs import start_tail_keybinding, stop_tail, start_health_check_keybinding, get_logs
+from configure import load_config, save_config, strip_quotes
+from parse_logs import start_tail_keybinding, stop_tail, start_health_check_keybinding, stop_health_check, get_logs
 
 initial_config = None  # Declare initial_config globally
 selected_binding_value = []
@@ -47,13 +47,16 @@ def create_ui():
                 with gr.Column():
                     log_file = gr.Textbox(label="Log File Path", placeholder="Enter log file path", lines=1)
                     default_guy = gr.Dropdown(label="Default Guy", choices=bounding_box_keys)
-                    all_components.extend([log_file, default_guy])
+                    ch_binding = gr.Textbox(label="CH Key Binding", placeholder="Enter a CH key binding")
+                    ch_threshold = gr.Number(label="CH Threshold", precision=0)
+                    all_components.extend([log_file, default_guy, ch_binding, ch_threshold])
 
             with gr.TabItem("Auto Heal Settings"):
                 with gr.Column():
                     heal_threshold = gr.Number(label="Heal Threshold", precision=0)
+                    heal_duck_check_time = gr.Number(label="Number of seconds to check before ducking", precision=0)
                     heal_binding = gr.Textbox(label="Heal Binding", placeholder="Enter heal binding key", lines=1)
-                    all_components.extend([heal_threshold, heal_binding])
+                    all_components.extend([heal_threshold, heal_duck_check_time, heal_binding])
 
             with gr.TabItem("Bounding Box Settings"):
                 bounding_boxes = {}
@@ -114,12 +117,16 @@ def create_ui():
             outputs.append(config.get("log_file", ""))
             bounding_box_keys = sorted(config.get('bounding_boxes', {}).keys())
             default_guy_value = config.get("default_guy", "")
+
             if default_guy_value not in bounding_box_keys:
                 default_guy_value = bounding_box_keys[0] if bounding_box_keys else ""
             outputs.append(gr.update(choices=bounding_box_keys, value=default_guy_value))
 
+            outputs.append(config.get("ch_binding", ""))
+            outputs.append(config.get("ch_threshold", 90))
             # Auto Heal Settings
             outputs.append(config.get("heal_threshold", 0))
+            outputs.append(config.get("heal_duck_check_time", 2))
             outputs.append(config.get("heal_binding", ""))
 
             # Bounding Box Settings
@@ -150,13 +157,19 @@ def create_ui():
                 arg_index = 0
 
                 # General Settings
-                new_config["log_file"] = args[arg_index]
+                new_config["log_file"] = strip_quotes(args[arg_index])
                 arg_index += 1
                 new_config["default_guy"] = args[arg_index]
+                arg_index += 1
+                new_config["ch_binding"] = args[arg_index]
+                arg_index += 1
+                new_config["ch_threshold"] = args[arg_index]
                 arg_index += 1
 
                 # Auto Heal Settings
                 new_config["heal_threshold"] = args[arg_index]
+                arg_index += 1
+                new_config["heal_duck_check_time"] = args[arg_index]
                 arg_index += 1
                 new_config["heal_binding"] = args[arg_index]
                 arg_index += 1
@@ -246,7 +259,7 @@ def create_ui():
 
         def stop_heal():
             try:
-                stop_tail()
+                stop_health_check()
                 return "Health check stopped."
             except Exception as e:
                 return f"Failed to stop health check: {e}"

@@ -64,14 +64,14 @@ def cast_or_duck_ch_stand(guy_name):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def cast_or_duck_ch(guy_name):
+def cast_or_duck_ch(guy_name, ch_threshold=85.0):
     try:
-        print("Casting spell...")
+        print(f"Casting CH... for {guy_name} with threshold {ch_threshold}")
         cast_ch()
-        time.sleep(9)
+        time.sleep(9.5)
         percentage = get_percentage_of_guy(guy_name)
         print(f"Red progress: {percentage:.2f}%")
-        if percentage > 85.0:
+        if percentage > ch_threshold:
             duck()
             time.sleep(1)
             sit()
@@ -84,9 +84,10 @@ def cast_or_duck_ch(guy_name):
 ten_mintues_in_seconds = 60 * 10
 
 class LogFileHandler(FileSystemEventHandler):
-    def __init__(self, log_file_path, guy_name, match_words, word_bindings):
+    def __init__(self, log_file_path, guy_name, match_words, word_bindings, ch_threshold=85.0):
         self.log_file_path = log_file_path
         self.guy_name = guy_name
+        self.ch_threshold = ch_threshold
         self.match_words = match_words if isinstance(match_words, list) else [match_words]
         self.word_bindings = word_bindings if isinstance(word_bindings, dict) else {}
         self.file_position = os.path.getsize(log_file_path)  # Start at the end of the file
@@ -118,14 +119,14 @@ class LogFileHandler(FileSystemEventHandler):
                     for word in self.match_words:
                         if word in line.lower():
                             if "go" in word:
-                                cast_or_duck_ch(self.guy_name)
+                                cast_or_duck_ch(self.guy_name, self.ch_threshold)
                             # if word in action_map:
                                 # action_map[word](self.guy_name)
                             break
 
-def tail_log_file(log_file_path, guy_name, match_words, word_bindings):
+def tail_log_file(log_file_path, guy_name, match_words, word_bindings, ch_threshold=85.0):
     global observer
-    event_handler = LogFileHandler(log_file_path, guy_name, match_words, word_bindings)
+    event_handler = LogFileHandler(log_file_path, guy_name, match_words, word_bindings, ch_threshold)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(log_file_path), recursive=False)
     observer.start()
@@ -155,14 +156,14 @@ def get_default_guy_name(config):
                 break
     return ""
 
-def start_tail(log_file_path, guy_name, match_words, word_bindings):
+def start_tail(log_file_path, guy_name, match_words, word_bindings, ch_threshold=85.0):
     global tail_thread
     if tail_thread:
         print("Stopping previous tail thread...")
         stop_tail()
     stop_event.clear()
     current_guy_name = guy_name
-    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings))
+    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings, ch_threshold))
     tail_thread.start()
     print("Log file parsing started.")
     print(f"Now monitoring: {current_guy_name}")
@@ -174,7 +175,7 @@ def start_tail_keybinding():
     config = load_config()
     log_file_path = config['log_file']
     guy_name = get_default_guy_name(config)
-    start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'])
+    start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'], config['ch_threshold'])
 
 def start_health_check(guy_name, config):
     global health_check_thread

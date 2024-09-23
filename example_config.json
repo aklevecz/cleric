@@ -12,11 +12,14 @@
         "go guy_name"
     ],
     "default_guy": "guy_name",
-    "heal_threshold": 0,
+    "ch_threshold": 90,
+    "heal_threshold": 50,
     "heal_binding": "",
     "word_bindings": {
-        "assist": "3",
+        "assist": "shift+x",
         "heal": "2",
-        "target": "f"
+        "target": "f",
+        "zoom out": "mouse.scroll(0,-10000)",
+        "zoom in and click": "mouse.scroll(0,10000);mouse.click();"
     }
 }
