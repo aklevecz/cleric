@@ -39,10 +39,14 @@ def check_health_and_heal(guy_name, heal_threshold, heal_binding, heal_duck_chec
             return 0.0
         if percentage < heal_threshold:
             press_binding(heal_binding)
+            print(f"Auto heal initiated by pressing binding {heal_binding}")
             # check if a heal landed while this was casting and duck if so
             time.sleep(heal_duck_check_time)
+            print(f"Checking health before letting heal land")
             percentage = get_percentage_of_guy(guy_name)
+            print(f"guy being healed is at {percentage} after checking")
             if percentage > heal_threshold:
+                print("Cancelling auto heal, guy has already been healed")
                 duck()
     except Exception as e:
         log_message(f"An error occurred: {e}")
