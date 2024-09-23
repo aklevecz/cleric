@@ -4,7 +4,7 @@ import os
 import threading
 import time
 import webbrowser
-from configure import load_config, save_config
+from configure import load_config, save_config, strip_quotes
 from parse_logs import start_tail_keybinding, stop_tail, start_health_check_keybinding, stop_health_check, get_logs
 
 initial_config = None  # Declare initial_config globally
@@ -157,7 +157,7 @@ def create_ui():
                 arg_index = 0
 
                 # General Settings
-                new_config["log_file"] = args[arg_index]
+                new_config["log_file"] = strip_quotes(args[arg_index])
                 arg_index += 1
                 new_config["default_guy"] = args[arg_index]
                 arg_index += 1
