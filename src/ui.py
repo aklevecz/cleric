@@ -5,7 +5,7 @@ import threading
 import time
 import webbrowser
 from configure import load_config, save_config
-from parse_logs import start_tail_keybinding, stop_tail, start_health_check_keybinding, get_logs
+from parse_logs import start_tail_keybinding, stop_tail, start_health_check_keybinding, stop_health_check, get_logs
 
 initial_config = None  # Declare initial_config globally
 selected_binding_value = []
@@ -259,7 +259,7 @@ def create_ui():
 
         def stop_heal():
             try:
-                stop_tail()
+                stop_health_check()
                 return "Health check stopped."
             except Exception as e:
                 return f"Failed to stop health check: {e}"

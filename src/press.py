@@ -71,6 +71,7 @@ def press_binding(keysString="shift+x"):
                         mouse.scroll(x, 1)
                     else:
                         mouse.scroll(x, -1)
+                time.sleep(1)
             
             if "mouse.click()" in keysString:
                 # keyString would be mouse.press(Button.left)
