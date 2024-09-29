@@ -17,7 +17,9 @@ observer = None
 tail_thread = None
 health_check_thread = None
 current_guy_name = ""
+has_auto_healed = False
 heal_failure_count = 0
+last_health_check_percentage = 0.0
 log_deque = deque(maxlen=1000)  # Store last 1000 log messages
 
 def log_message(message):
@@ -27,29 +29,7 @@ def log_message(message):
 def get_logs():
     return "\n".join(log_deque)
 
-# Periodic health checking and healing
-def check_health_and_heal(guy_name, heal_threshold, heal_binding, heal_duck_check_time):
-    try:
-        log_message(f"Checking health for {guy_name}...")
-        percentage = get_percentage_of_guy(guy_name)
-        log_message(f"Red progress: {percentage:.2f}%")
 
-        if percentage == 0.0:
-            log_message("Screenshot error or guy is dead, do nothing")
-            return 0.0
-        if percentage < heal_threshold:
-            press_binding(heal_binding)
-            print(f"Auto heal initiated by pressing binding {heal_binding}")
-            # check if a heal landed while this was casting and duck if so
-            time.sleep(heal_duck_check_time)
-            print(f"Checking health before letting heal land")
-            percentage = get_percentage_of_guy(guy_name)
-            print(f"guy being healed is at {percentage} after checking")
-            if percentage > heal_threshold:
-                print("Cancelling auto heal, guy has already been healed")
-                duck()
-    except Exception as e:
-        log_message(f"An error occurred: {e}")
 
 # Periodic health checking and healing end
 
@@ -87,13 +67,14 @@ def cast_or_duck_ch(guy_name, ch_threshold=85.0, ch_binding="1"):
 ten_mintues_in_seconds = 60 * 10
 
 class LogFileHandler(FileSystemEventHandler):
-    def __init__(self, log_file_path, guy_name, match_words, word_bindings, verbose, ch_threshold=85.0, ch_binding="1"):
+    def __init__(self, log_file_path, guy_name, match_words, word_bindings, verbose, ch_threshold=85.0, ch_binding="1", stop_heal_log="guy has been slain"):
         self.log_file_path = log_file_path
         self.guy_name = guy_name
         self.ch_threshold = ch_threshold
         self.ch_binding = ch_binding
         self.match_words = match_words if isinstance(match_words, list) else [match_words]
         self.word_bindings = word_bindings if isinstance(word_bindings, dict) else {}
+        self.stop_heal_log = stop_heal_log
         self.verbose = verbose
 
         self.file_position = os.path.getsize(log_file_path)  # Start at the end of the file
@@ -115,25 +96,31 @@ class LogFileHandler(FileSystemEventHandler):
                 for line in new_lines:
                     if self.verbose:
                         log_message(line)
+                    
+                    # word/key binding block
                     for wordsString in self.word_bindings.keys():
-                        if wordsString in line.lower():
+                        if wordsString.lower() in line.lower():
                             time.sleep(random.uniform(0, 2))
                             keyBinding = self.word_bindings[wordsString]
                             log_message(f"Pressing key binding: {keyBinding} for trigger words: {wordsString}")
                             press_binding(keyBinding)
                             break
-
+                    
+                    # legacy ch block
                     for word in self.match_words:
-                        if word in line.lower():
+                        if word.lower() in line.lower():
                             if "go" in word:
                                 cast_or_duck_ch(self.guy_name, self.ch_threshold, self.ch_binding)
                             # if word in action_map:
                                 # action_map[word](self.guy_name)
                             break
 
-def tail_log_file(log_file_path, guy_name, match_words, word_bindings, verbose, ch_threshold=85.0, ch_binding="1"):
+                    if self.stop_heal_log.lower() in line.lower():
+                        stop_health_check()
+
+def tail_log_file(log_file_path, guy_name, match_words, word_bindings, verbose, ch_threshold=85.0, ch_binding="1", stop_heal_log="guy has been slain"):
     global observer
-    event_handler = LogFileHandler(log_file_path, guy_name, match_words, word_bindings, verbose, ch_threshold, ch_binding)
+    event_handler = LogFileHandler(log_file_path, guy_name, match_words, word_bindings, verbose, ch_threshold, ch_binding, stop_heal_log)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(log_file_path), recursive=False)
     observer.start()
@@ -171,14 +158,14 @@ def get_default_guy_name(config):
     #             break
     # return ""
 
-def start_tail(log_file_path, guy_name, match_words, word_bindings, verbose=False, ch_threshold=85.0, ch_binding="1"):
+def start_tail(log_file_path, guy_name, match_words, word_bindings, verbose=False, ch_threshold=85.0, ch_binding="1", stop_heal_log="guy has been slain"):
     global tail_thread
     if tail_thread:
         log_message("Stopping previous tail thread...")
         stop_tail()
     tail_stop_event.clear()
     current_guy_name = guy_name
-    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings, verbose, ch_threshold, ch_binding))
+    tail_thread = threading.Thread(target=tail_log_file, args=(log_file_path, guy_name, match_words, word_bindings, verbose, ch_threshold, ch_binding, stop_heal_log))
     tail_thread.start()
     log_message("Log file parsing started.")
     log_message(f"Now monitoring: {current_guy_name}")
@@ -190,21 +177,53 @@ def start_tail_keybinding():
     config = load_config()
     log_file_path = config['log_file']
     guy_name = get_default_guy_name(config)
-    start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'], config['verbose'], config['ch_threshold'], config["ch_binding"])
+    start_tail(log_file_path, guy_name, config['match_words'], config['word_bindings'], config['verbose'], config['ch_threshold'], config["ch_binding"], config['stop_heal_log'])
+
+# Periodic health checking and healing
+def check_health_and_heal(guy_name, heal_threshold, heal_binding, heal_duck_check_time):
+    try:
+        healing = False
+        percentage = get_percentage_of_guy(guy_name)
+        log_message(f"Health checked for {guy_name}...Health percentage: {percentage:.2f}%")
+        if percentage == 0.0:
+            log_message("Screenshot error or guy is dead, do nothing")
+            return percentage, healing
+        if percentage < heal_threshold:
+            healing = True
+            press_binding(heal_binding)
+            print(f"Auto heal initiated by pressing binding {heal_binding}")
+            # check if a heal landed while this was casting and duck if so
+            time.sleep(heal_duck_check_time)
+            print(f"Checking health before letting heal land")
+            percentage = get_percentage_of_guy(guy_name)
+            print(f"{guy_name} being healed is at {percentage} after rechecking")
+            if percentage > heal_threshold:
+                print(f"Cancelling auto heal, {guy_name} has already been healed")
+                duck()
+            return percentage, healing
+        return 0.0, healing
+            
+    except Exception as e:
+        log_message(f"An error occurred: {e}")
 
 def periodic_health_check(guy_name, config):
-    global heal_failure_count
+    global heal_failure_count, has_auto_healed
     while not health_check_stop_event.is_set():
-        res = check_health_and_heal(guy_name, config['heal_threshold'], config['heal_binding'], config["heal_duck_check_time"])
-        if res == 0.0:
+        percentage, healing = check_health_and_heal(guy_name, config['heal_threshold'], config['heal_binding'], config["heal_duck_check_time"])
+        if percentage == 0.0 and has_auto_healed == True:
             heal_failure_count += 1
-            if heal_failure_count > 10:
-                log_message("Guy is dead or something, stop healing.")
-                return
-        # tag_nearest_enemy()
-        # random_sleep_interval = random.randint(5, 20) 
-        random_sleep_interval = 2
-        time.sleep(random_sleep_interval)  # Wait for 2 seconds before the next check
+            print(f"Healing has failed {heal_failure_count} times")
+            # if heal_failure_count > 10:
+            #     log_message("Guy is dead or something, stop healing.")
+            #     return
+        if percentage == 0.0 and has_auto_healed == False:
+            print("No healthbar found and has not healed yet")
+
+        if percentage > 0.0 and healing:
+            has_auto_healed = True
+
+        check_interval = 1
+        time.sleep(check_interval)  # Wait for 1 seconds before the next check
         
 def start_health_check(guy_name, config):
     global health_check_thread

@@ -4,7 +4,7 @@ import os
 import threading
 import time
 import webbrowser
-from configure import load_config, save_config, strip_quotes
+from configure import load_config, save_config, strip_quotes, create_bounding_box
 from parse_logs import start_tail_keybinding, stop_tail, start_health_check_keybinding, stop_health_check, get_logs
 
 initial_config = None  # Declare initial_config globally
@@ -56,19 +56,31 @@ def create_ui():
                     heal_threshold = gr.Number(label="Heal Threshold", precision=0)
                     heal_duck_check_time = gr.Number(label="Number of seconds to check before ducking", precision=0)
                     heal_binding = gr.Textbox(label="Heal Binding", placeholder="Enter heal binding key", lines=1)
-                    all_components.extend([heal_threshold, heal_duck_check_time, heal_binding])
+                    stop_heal_log = gr.Textbox(label="Stop Heal Log", placeholder="Enter a log message that will stop auto heal", lines=1)
+                    all_components.extend([heal_threshold, heal_duck_check_time, heal_binding, stop_heal_log])
 
+            # with gr.TabItem("Bounding Box Settings"):
+            #     bounding_boxes = {}
+            #     for key in bounding_box_keys:
+            #         with gr.Column():
+            #             gr.Markdown(f"### {key.capitalize()} Bounding Box")
+            #             left = gr.Number(label="Left", precision=0)
+            #             top = gr.Number(label="Top", precision=0)
+            #             width = gr.Number(label="Width", precision=0)
+            #             height = gr.Number(label="Height", precision=0)
+            #             bounding_boxes[key] = {"left": left, "top": top, "width": width, "height": height}
+            #             all_components.extend([left, top, width, height])
             with gr.TabItem("Bounding Box Settings"):
-                bounding_boxes = {}
-                for key in bounding_box_keys:
-                    with gr.Column():
-                        gr.Markdown(f"### {key.capitalize()} Bounding Box")
-                        left = gr.Number(label="Left", precision=0)
-                        top = gr.Number(label="Top", precision=0)
-                        width = gr.Number(label="Width", precision=0)
-                        height = gr.Number(label="Height", precision=0)
-                        bounding_boxes[key] = {"left": left, "top": top, "width": width, "height": height}
-                        all_components.extend([left, top, width, height])
+                with gr.Row("Add a new healthbar"):
+                    new_box_name = gr.Textbox(label="Name for new guy", placeholder="Enter the name for the guy")
+                    draw_new_box = gr.Button("Draw new box")
+                with gr.Row("Current bounding boxes"):
+                    bounding_boxes_text = gr.TextArea(
+                        label="Bounding Boxes",
+                        placeholder="Enter bounding boxes as JSON",
+                        lines=10
+                    )
+                    all_components.append(bounding_boxes_text)
 
             with gr.TabItem("Word Settings"):
                 with gr.Column():
@@ -112,7 +124,7 @@ def create_ui():
         def load_config_ui():
             config = load_config()
             outputs = []
-
+            # print(config)
             # General Settings
             outputs.append(config.get("log_file", ""))
             bounding_box_keys = sorted(config.get('bounding_boxes', {}).keys())
@@ -128,14 +140,18 @@ def create_ui():
             outputs.append(config.get("heal_threshold", 0))
             outputs.append(config.get("heal_duck_check_time", 2))
             outputs.append(config.get("heal_binding", ""))
+            outputs.append(config.get("stop_heal_log", ""))
 
             # Bounding Box Settings
-            for key in bounding_box_keys:
-                bbox = config['bounding_boxes'].get(key, {})
-                outputs.append(bbox.get("left", 0))
-                outputs.append(bbox.get("top", 0))
-                outputs.append(bbox.get("width", 0))
-                outputs.append(bbox.get("height", 0))
+            # for key in bounding_box_keys:
+            #     bbox = config['bounding_boxes'].get(key, {})
+            #     outputs.append(bbox.get("left", 0))
+            #     outputs.append(bbox.get("top", 0))
+            #     outputs.append(bbox.get("width", 0))
+            #     outputs.append(bbox.get("height", 0))
+
+            bounding_boxes_json = json.dumps(config.get('bounding_boxes', {}), indent=2)
+            outputs.append(bounding_boxes_json)
 
             # Word Settings
             outputs.append("\n".join(config.get("match_words", [])))
@@ -148,7 +164,7 @@ def create_ui():
 
             # Log Output
             outputs.append(get_logs())
-
+            print("done load ui")
             return outputs
 
         def save_configuration(config, *args):
@@ -173,20 +189,26 @@ def create_ui():
                 arg_index += 1
                 new_config["heal_binding"] = args[arg_index]
                 arg_index += 1
+                new_config["stop_heal_log"] = args[arg_index]
+                arg_index += 1
 
                 # Bounding Box Settings
-                bounding_box_keys = sorted(config.get('bounding_boxes', {}).keys())
-                new_config['bounding_boxes'] = {}
+                # bounding_box_keys = sorted(config.get('bounding_boxes', {}).keys())
+                # new_config['bounding_boxes'] = {}
 
-                for key in bounding_box_keys:
-                    new_config['bounding_boxes'][key] = {
-                        "left": int(args[arg_index]),
-                        "top": int(args[arg_index + 1]),
-                        "width": int(args[arg_index + 2]),
-                        "height": int(args[arg_index + 3])
-                    }
-                    arg_index += 4
-
+                # for key in bounding_box_keys:
+                #     new_config['bounding_boxes'][key] = {
+                #         "left": int(args[arg_index]),
+                #         "top": int(args[arg_index + 1]),
+                #         "width": int(args[arg_index + 2]),
+                #         "height": int(args[arg_index + 3])
+                #     }
+                #     arg_index += 4
+                try:
+                    new_config['bounding_boxes'] = json.loads(args[arg_index])
+                except json.JSONDecodeError:
+                    return config, "Error: Invalid JSON for bounding boxes"
+                arg_index += 1
                 # Word Settings
                 match_words_val = args[arg_index]
                 arg_index += 1
@@ -235,6 +257,31 @@ def create_ui():
                 return binding.split(':', 1)[0].strip()
                 return binding.split(':', 1)[1].strip()
             return ""
+        
+        def update_bounding_box_components(config):
+            bounding_box_keys = sorted(config.get('bounding_boxes', {}).keys())
+            bounding_boxes_json = json.dumps(config.get('bounding_boxes', {}), indent=2)
+            return [
+                gr.update(choices=bounding_box_keys, value=config.get("default_guy", "")),
+                bounding_boxes_json
+            ]
+
+        def add_bounding_box_handler(config, name):
+            new_config = config.copy()
+            create_bounding_box(name)
+            new_config = load_config()  # Reload the config to get the new bounding box
+            save_config(new_config)
+            
+            # Update the components that depend on bounding boxes
+            updates = update_bounding_box_components(new_config)
+            
+            return (
+                new_config,
+                updates[0],  # Update for default_guy dropdown
+                updates[1],  # Update for bounding_boxes_text
+                f"Added new bounding box: {name}"  # Status message
+            )
+
 
         def start_parsing():
             try:
@@ -263,6 +310,17 @@ def create_ui():
                 return "Health check stopped."
             except Exception as e:
                 return f"Failed to stop health check: {e}"
+
+        draw_new_box.click(
+            add_bounding_box_handler,
+            inputs=[config_state, new_box_name],
+            outputs=[
+                config_state,
+                default_guy,
+                bounding_boxes_text,
+                status_box
+            ]
+        )
 
         save_button.click(
             save_configuration,

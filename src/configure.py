@@ -125,9 +125,10 @@ def save_config(config, filename='config.json'):
 #             return json.load(f)
 #     return {}
 
-def create_bounding_box():
+def create_bounding_box(name=None):
     """Create a new bounding box and save it to the configuration."""
-    name = input("Enter a name for this bounding box: ")
+    if name == None:
+        name = input("Enter a name for this bounding box: ")
     
     root = tk.Tk()
     app = ScreenSelector(root)
