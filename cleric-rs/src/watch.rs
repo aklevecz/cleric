@@ -42,17 +42,28 @@ pub fn run_health_loop(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBoo
             eprintln!("[health] no default_guy configured");
             return;
         }
+        println!("[health] watching {name}, heal below {:.0}%", cfg.heal_threshold);
+        // Require two consecutive below-threshold reads before healing, so a
+        // single glitchy capture frame can't trigger a spurious heal.
+        let mut low_streak = 0u32;
         while !stop.load(Ordering::Relaxed) {
             if paused.load(Ordering::Relaxed) {
                 sleep(Duration::from_millis(250));
                 continue;
             }
             let pct = pct_for(&cap, &cfg, &name);
-            if cfg.verbose {
-                println!("[health] {name}: {pct:.1}%");
-            }
+            // Print every tick so you can see it's alive and what it reads.
+            println!("[health] {name}: {pct:.1}%");
+
             if pct > 0.0 && pct < cfg.heal_threshold {
-                println!("[health] {name} at {pct:.1}% -> heal ({})", cfg.heal_binding);
+                low_streak += 1;
+            } else {
+                low_streak = 0;
+            }
+
+            if low_streak >= 2 {
+                low_streak = 0;
+                println!("[health] {name} low ({pct:.1}%) -> heal ({})", cfg.heal_binding);
                 input::press_binding(&cfg.heal_binding);
                 sleep(Duration::from_secs_f32(cfg.heal_duck_check_time));
                 let again = pct_for(&cap, &cfg, &name);
