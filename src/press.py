@@ -46,9 +46,18 @@ def get_screen_info():
         "center_y": center_y
     }
 
-screen_dim = get_screen_info()
+# Resolve screen size lazily and cache it, so importing this module doesn't
+# create a tkinter root (which needs a display and slows import).
+_screen_dim = None
+def _get_screen_dim():
+    global _screen_dim
+    if _screen_dim is None:
+        _screen_dim = get_screen_info()
+    return _screen_dim
+
 def center_mouse():
-    mouse.position = (screen_dim["center_x"], screen_dim["center_y"])
+    dim = _get_screen_dim()
+    mouse.position = (dim["center_x"], dim["center_y"])
 
 def press_binding(keysString="shift+x"):
     split_keys = keysString.split(';')

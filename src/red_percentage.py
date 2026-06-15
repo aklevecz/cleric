@@ -1,14 +1,17 @@
 import numpy as np
 from PIL import Image
-import tkinter as tk
 from datetime import datetime
 import json
 import os
 import argparse
-import pandas as pd
 from mss import mss
 import time
-from configure import load_config
+from core.config import load_config
+
+# Debug image dumps (detected_red_areas.png etc.) are written only when this is
+# set, because the health-check loop calls this ~once/second and writing PNGs
+# on every frame is constant disk I/O. Enable with CLERIC_DEBUG=1.
+DEBUG = bool(os.environ.get("CLERIC_DEBUG"))
 
 def capture_screen_region_with_retry(left, top, width, height, max_retries=3, delay=0.5):
     """Capture a specific region of the screen using mss with retries."""
@@ -50,24 +53,25 @@ def analyze_red_progress(image):
     
     if not np.any(red_condition):
         print("No red pixels detected in the image.")
-        Image.fromarray(img_array).save("no_red_pixels.png")
+        if DEBUG:
+            Image.fromarray(img_array).save("no_red_pixels.png")
         return 0.00
-    
+
     red_columns = np.any(red_condition, axis=0)
     if np.any(red_columns):
         rightmost_red = np.max(np.where(red_columns)[0])
     else:
         return 0.00
-    
+
     total_width = img_array.shape[1] - 1
     percentage = (rightmost_red / total_width) * 100
-    
-    # Save a visualization of the detected red areas
-    red_visualization = np.zeros_like(img_array)
-    red_visualization[red_condition] = [255, 0, 0]  # Set detected red pixels to bright red
-    Image.fromarray(red_visualization).save("detected_red_areas.png")
-    
-    Image.fromarray(img_array).save("red_progress.png")
+
+    if DEBUG:
+        # Save a visualization of the detected red areas
+        red_visualization = np.zeros_like(img_array)
+        red_visualization[red_condition] = [255, 0, 0]  # detected red pixels -> bright red
+        Image.fromarray(red_visualization).save("detected_red_areas.png")
+        Image.fromarray(img_array).save("red_progress.png")
     return round(percentage, 2)
 
 def append_to_log(name, percentage, timestamp, filename='monitor_log.json'):

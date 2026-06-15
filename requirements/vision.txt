@@ -1,0 +1,4 @@
+# Health-bar vision (src/red_percentage.py): screenshot + red-fill analysis.
+numpy==2.1.0
+Pillow==10.4.0
+mss==9.0.2

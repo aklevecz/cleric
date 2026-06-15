@@ -6,9 +6,9 @@ import keyboard
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from press import cast_ch, duck, sit, press_binding
-from configure import load_config, save_config
+from core.config import load_config, save_config
 from red_percentage import get_percentage_of_guy
-from queue import Queue
+from queue import Queue, Empty
 from collections import deque
 
 tail_stop_event = threading.Event()
@@ -29,6 +29,41 @@ def log_message(message):
 def get_logs():
     return "\n".join(log_deque)
 
+
+# ------------------------ Action worker ------------------------ #
+# Long actions (a Complete Heal blocks ~9.5s) must NOT run inside the watchdog
+# on_modified callback, or the log tailer stalls and misses lines/triggers while
+# a cast is in flight. Instead we hand them to a single background worker that
+# runs them serialized, so the tailer stays responsive and casts never overlap.
+action_queue = Queue()
+_action_worker_thread = None
+
+
+def _action_worker():
+    while True:
+        try:
+            func = action_queue.get(timeout=0.5)
+        except Empty:
+            continue
+        try:
+            func()
+        except Exception as e:
+            log_message(f"Action error: {e}")
+        finally:
+            action_queue.task_done()
+
+
+def enqueue_action(func):
+    """Queue a long action to run off the log-tailer thread. Drops the action if
+    one is already pending/running, so rapid repeat triggers don't pile up."""
+    global _action_worker_thread
+    if _action_worker_thread is None or not _action_worker_thread.is_alive():
+        _action_worker_thread = threading.Thread(target=_action_worker, daemon=True)
+        _action_worker_thread.start()
+    if not action_queue.empty():
+        log_message("An action is already queued/running, skipping duplicate trigger.")
+        return
+    action_queue.put(func)
 
 
 # Periodic health checking and healing end
@@ -106,13 +141,12 @@ class LogFileHandler(FileSystemEventHandler):
                             press_binding(keyBinding)
                             break
                     
-                    # legacy ch block
+                    # legacy ch block -- run the ~9.5s cast off this thread so
+                    # the tailer keeps reading while CH is in flight.
                     for word in self.match_words:
                         if word.lower() in line.lower():
                             if "go" in word:
-                                cast_or_duck_ch(self.guy_name, self.ch_threshold, self.ch_binding)
-                            # if word in action_map:
-                                # action_map[word](self.guy_name)
+                                enqueue_action(lambda: cast_or_duck_ch(self.guy_name, self.ch_threshold, self.ch_binding))
                             break
 
                     if self.stop_heal_log.lower() in line.lower():
@@ -202,9 +236,10 @@ def check_health_and_heal(guy_name, heal_threshold, heal_binding, heal_duck_chec
                 duck()
             return percentage, healing
         return 0.0, healing
-            
+
     except Exception as e:
         log_message(f"An error occurred: {e}")
+        return 0.0, False  # always return a (percentage, healing) tuple
 
 def periodic_health_check(guy_name, config):
     global heal_failure_count, has_auto_healed

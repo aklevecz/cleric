@@ -1,0 +1,6 @@
+# Log watcher + input (src/parse_logs.py, src/press.py). Pulls in vision too,
+# since the health check screenshots bars.
+-r vision.txt
+watchdog==4.0.2
+keyboard==0.13.5
+pynput==1.7.7

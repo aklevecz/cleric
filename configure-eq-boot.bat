@@ -16,7 +16,7 @@ if defined PROFILE (set PYTHON=%PYTHON% -m scalene --off --cpu --gpu --profile-a
 echo Using Python %PYTHON%
 
 :launch
-%PYTHON% src/open-eq.py --new
+%PYTHON% boot/boot.py --new
 
 :end
 pause

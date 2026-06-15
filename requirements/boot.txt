@@ -1,0 +1,2 @@
+# Boot/login automation only (boot/boot.py). One package.
+pynput==1.7.7
