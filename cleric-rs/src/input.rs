@@ -10,9 +10,15 @@ use std::thread::sleep;
 use std::time::Duration;
 
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    MapVirtualKeyW, SendInput, INPUT, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
-    KEYEVENTF_SCANCODE, MAPVK_VK_TO_VSC,
+    MapVirtualKeyW, SendInput, INPUT, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_KEYUP,
+    KEYEVENTF_SCANCODE, MAPVK_VK_TO_VSC, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
+    MOUSEEVENTF_WHEEL, MOUSEINPUT,
 };
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+    GetSystemMetrics, SetCursorPos, SM_CXSCREEN, SM_CYSCREEN,
+};
+
+const WHEEL_DELTA: i32 = 120;
 
 fn vk_to_scan(vk: u16) -> u16 {
     unsafe { MapVirtualKeyW(vk as u32, MAPVK_VK_TO_VSC) as u16 }
@@ -79,7 +85,67 @@ pub fn tap(name: &str) {
     }
 }
 
-/// Run a binding string: `;`-separated steps, each a `+`-joined chord.
+fn send_mouse(flags: u32, data: i32) {
+    unsafe {
+        let mut input: INPUT = zeroed();
+        input.r#type = INPUT_MOUSE;
+        input.Anonymous.mi = MOUSEINPUT {
+            dx: 0,
+            dy: 0,
+            mouseData: data as u32,
+            dwFlags: flags,
+            time: 0,
+            dwExtraInfo: 0,
+        };
+        SendInput(1, &input as *const INPUT, size_of::<INPUT>() as i32);
+    }
+}
+
+/// Move the cursor to screen center (matches the Python center_mouse before a
+/// mouse binding, so scroll/click land on the game viewport).
+fn center_mouse() {
+    unsafe {
+        let cx = GetSystemMetrics(SM_CXSCREEN) / 2;
+        let cy = GetSystemMetrics(SM_CYSCREEN) / 2;
+        SetCursorPos(cx, cy);
+    }
+}
+
+fn mouse_click() {
+    send_mouse(MOUSEEVENTF_LEFTDOWN, 0);
+    sleep(Duration::from_millis(200));
+    send_mouse(MOUSEEVENTF_LEFTUP, 0);
+}
+
+/// Scroll `notches` wheel steps (sign = direction). Capped so a huge value like
+/// -10000 ("zoom all the way out") doesn't fire thousands of events.
+fn mouse_scroll(notches: i32) {
+    let n = notches.abs().min(500);
+    let dir = if notches < 0 { -1 } else { 1 };
+    for _ in 0..n {
+        send_mouse(MOUSEEVENTF_WHEEL, dir * WHEEL_DELTA);
+        sleep(Duration::from_millis(2));
+    }
+}
+
+/// Parse the Python mouse mini-DSL: `mouse.scroll(x,y)` or `mouse.click()`.
+fn run_mouse_step(step: &str) {
+    center_mouse();
+    if let Some(args) = step.strip_prefix("mouse.scroll(").and_then(|s| s.strip_suffix(')')) {
+        // args = "x,y"; the y component is the wheel amount, like pynput.
+        let parts: Vec<&str> = args.split(',').collect();
+        if let Some(y) = parts.get(1).and_then(|s| s.trim().parse::<i32>().ok()) {
+            mouse_scroll(y);
+        }
+    } else if step.contains("mouse.click()") {
+        mouse_click();
+    } else {
+        eprintln!("[input] unrecognized mouse step: {step}");
+    }
+}
+
+/// Run a binding string: `;`-separated steps, each a `+`-joined chord or a
+/// `mouse.*` action.
 pub fn press_binding(binding: &str) {
     for step in binding.split(';') {
         let step = step.trim();
@@ -87,7 +153,7 @@ pub fn press_binding(binding: &str) {
             continue;
         }
         if step.contains("mouse") {
-            eprintln!("[input] mouse bindings not supported yet, skipping: {step}");
+            run_mouse_step(step);
             continue;
         }
         let vks: Vec<u16> = step.split('+').filter_map(name_to_vk).collect();

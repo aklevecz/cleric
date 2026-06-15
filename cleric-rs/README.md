@@ -30,14 +30,20 @@ they just need a `config.json` next to it (or point `CLERIC_CONFIG` at one).
 ## Use
 
 ```
-cleric read [guy]   capture a configured HP bar and print its fill %  (verify a box)
-cleric run          run the health-check + log-tail loops
+cleric calibrate <guy>   point at a health bar's two corners to save a box
+cleric read [guy]        capture a configured HP bar and print its fill %
+cleric run               run the loops (Ctrl+Alt+P pause, Ctrl+Alt+Q quit)
 ```
 
-- `read` is the calibration check: it captures the named bounding box (default:
-  `default_guy` from config) and prints the red-fill %. Use it to confirm a box
-  lines up with a health bar.
-- `run` starts both reactive loops and blocks until you Ctrl+C:
+- `calibrate` replaces the Python draw-a-box tool — no Python needed. With the
+  bar visible, move the mouse to its **top-left** corner and tap **F8**, then its
+  **bottom-right** corner and tap **F8** (Esc cancels). The box is saved to
+  `config.json`, set as the default guy, and read back so you can confirm the
+  fill %. Keys are read globally, so the game can stay focused.
+- `read` is the verify check: it captures the named bounding box (default:
+  `default_guy`) and prints the red-fill %.
+- `run` starts both reactive loops and runs until you quit:
+  - **Ctrl+Alt+P** pauses/resumes (stops acting, keeps reading); **Ctrl+Alt+Q** quits.
   - **health loop** — polls the guy's HP bar ~1×/s; if below `heal_threshold`
     it presses `heal_binding`, waits `heal_duck_check_time`, re-checks, and
     ducks to cancel if the target already recovered.
@@ -66,11 +72,16 @@ cleric run          run the health-check + log-tail loops
   Python+gradio app on weak hardware. (Build with Rust ≤1.x targeting older
   Windows if you must support Windows 7/8.)
 
-## Not yet ported (intentionally — first slice)
+## Implemented
 
-- The draw-a-box GUI for creating bounding boxes (use the Python
-  `configure.py --create`, or hand-edit `config.json`; coords are shared).
-- The gradio web UI (config is the shared `config.json`).
-- Mouse bindings (`mouse.scroll(...)` / `mouse.click()`) — skipped with a warning.
-- Global start/stop hotkeys — `run` uses Ctrl+C for now.
+- Bounding-box calibration (`calibrate`) — no Python needed to set up boxes.
+- Global hotkeys for `run` (pause/resume + quit).
+- Mouse bindings: `mouse.scroll(x,y)` and `mouse.click()` (cursor centered first,
+  scroll capped so a huge value doesn't fire thousands of events).
+- DPI-aware, so calibration cursor coords and GDI capture use the same pixels.
+
+## Not yet ported (intentionally)
+
+- The gradio web UI — config is the shared `config.json`, now fully editable via
+  `calibrate` + hand-edits, so the browser UI is optional.
 - Login automation — already standalone in the Python `boot/` folder.

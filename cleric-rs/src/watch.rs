@@ -28,7 +28,7 @@ fn pct_for(cap: &Capturer, cfg: &Config, name: &str) -> f32 {
     }
 }
 
-pub fn run_health_loop(cfg: Config, stop: Arc<AtomicBool>) -> JoinHandle<()> {
+pub fn run_health_loop(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBool>) -> JoinHandle<()> {
     thread::spawn(move || {
         let cap = match Capturer::new() {
             Some(c) => c,
@@ -43,6 +43,10 @@ pub fn run_health_loop(cfg: Config, stop: Arc<AtomicBool>) -> JoinHandle<()> {
             return;
         }
         while !stop.load(Ordering::Relaxed) {
+            if paused.load(Ordering::Relaxed) {
+                sleep(Duration::from_millis(250));
+                continue;
+            }
             let pct = pct_for(&cap, &cfg, &name);
             if cfg.verbose {
                 println!("[health] {name}: {pct:.1}%");
@@ -62,7 +66,7 @@ pub fn run_health_loop(cfg: Config, stop: Arc<AtomicBool>) -> JoinHandle<()> {
     })
 }
 
-pub fn run_log_tail(cfg: Config, stop: Arc<AtomicBool>) -> JoinHandle<()> {
+pub fn run_log_tail(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBool>) -> JoinHandle<()> {
     thread::spawn(move || {
         // Action worker for the long (~9.5s) CH cast. A rendezvous channel
         // (capacity 0) means try_send fails while the worker is busy casting,
@@ -116,6 +120,9 @@ pub fn run_log_tail(cfg: Config, stop: Arc<AtomicBool>) -> JoinHandle<()> {
                             let low = line.to_lowercase();
                             if cfg.verbose {
                                 println!("{line}");
+                            }
+                            if paused.load(Ordering::Relaxed) {
+                                continue; // consumed (no replay on resume), but don't act
                             }
                             for (word, binding) in &word_bindings {
                                 if low.contains(word) {
