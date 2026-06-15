@@ -6,6 +6,7 @@
 mod calibrate;
 mod capture;
 mod config;
+mod draw;
 mod input;
 mod watch;
 mod web;
@@ -42,10 +43,25 @@ fn main() {
         "calibrate" => {
             let name = args.get(2).cloned().unwrap_or_else(|| cfg.default_guy.clone());
             if name.is_empty() {
-                eprintln!("usage: cleric calibrate <guy>");
+                eprintln!("usage: cleric calibrate <guy> [corners]");
                 std::process::exit(1);
             }
-            calibrate::calibrate(&name);
+            // Default: drag-a-box overlay. `corners` uses the F8 two-point method
+            // (useful if the overlay won't show, e.g. fullscreen-exclusive games).
+            let use_corners = args.get(3).map(|s| s == "corners").unwrap_or(false);
+            if use_corners {
+                println!("Calibrating '{name}' (F8 corners). Make sure the bar is visible.");
+            } else {
+                println!("Calibrating '{name}': drag a box around the bar. Right-click or Esc to cancel.");
+            }
+            let rect = if use_corners { calibrate::capture_box() } else { draw::draw_box() };
+            match rect {
+                Some((l, t, w, h)) => match calibrate::save_box(&name, l, t, w, h) {
+                    Ok(pct) => println!("saved '{name}': left={l} top={t} width={w} height={h} -> reads {pct:.1}% now"),
+                    Err(e) => eprintln!("failed to save: {e}"),
+                },
+                None => println!("cancelled."),
+            }
         }
 
         // Capture a configured health bar and print its red % — for verifying
@@ -139,7 +155,7 @@ fn main() {
             println!();
             println!("usage:");
             println!("  cleric ui [port]        open the web control panel (default port 7860)");
-            println!("  cleric calibrate <guy>  point at a health bar's two corners to save a box");
+            println!("  cleric calibrate <guy>  drag a box over a health bar to save it ('corners' = F8 mode)");
             println!("  cleric read [guy]       capture a configured HP bar and print its fill %");
             println!("  cleric run              run the loops (Ctrl+Alt+P pause, Ctrl+Alt+Q quit)");
             println!();

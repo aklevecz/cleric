@@ -11,7 +11,7 @@ use std::thread::{self, JoinHandle};
 
 use crate::calibrate;
 use crate::capture::{red_percentage, Capturer};
-use crate::config::{self, BBox};
+use crate::config;
 use crate::watch;
 
 struct Rt {
@@ -137,25 +137,19 @@ fn handle(mut stream: TcpStream, rt: Arc<Rt>) {
                 respond(&mut stream, 400, "application/json", &err_json("name required"));
                 return;
             }
-            match calibrate::capture_box() {
-                Some((l, t, w, h)) => {
-                    let mut cfg = config::load();
-                    cfg.bounding_boxes.insert(
-                        name.clone(),
-                        BBox { left: l as f64, top: t as f64, width: w as f64, height: h as f64 },
-                    );
-                    cfg.default_guy = name.clone();
-                    let _ = config::save(&cfg);
-                    respond(
+            match crate::draw::draw_box() {
+                Some((l, t, w, h)) => match calibrate::save_box(&name, l, t, w, h) {
+                    Ok(pct) => respond(
                         &mut stream,
                         200,
                         "application/json",
                         &format!(
-                            "{{\"ok\":true,\"name\":\"{}\",\"left\":{l},\"top\":{t},\"width\":{w},\"height\":{h}}}",
+                            "{{\"ok\":true,\"name\":\"{}\",\"left\":{l},\"top\":{t},\"width\":{w},\"height\":{h},\"pct\":{pct:.1}}}",
                             json_escape(&name)
                         ),
-                    );
-                }
+                    ),
+                    Err(e) => respond(&mut stream, 500, "application/json", &err_json(&e)),
+                },
                 None => respond(&mut stream, 200, "application/json", &err_json("cancelled or box too small")),
             }
         }
@@ -309,7 +303,7 @@ const INDEX_HTML: &str = r#"<!doctype html>
 
 <h2>Bounding boxes</h2>
 <pre id="boxes"></pre>
-<label>Calibrate a box (point at the bar's corners with F8 after clicking)</label>
+<label>Calibrate a box (a dim overlay appears — drag a rectangle over the bar)</label>
 <div class="row">
  <div><input type="text" id="box_name" placeholder="name e.g. tank"></div>
  <div><button onclick="calibrate()">Calibrate</button></div>
@@ -351,7 +345,7 @@ async function refresh(){
 async function readBar(){const r=await (await fetch('/api/read')).json(); msg(r.name+': '+r.pct+'% full');}
 async function calibrate(){
   const n=box_name.value.trim(); if(!n){msg('enter a box name',true);return;}
-  msg('Alt-tab to the game: tap F8 at the bar’s TOP-LEFT, then F8 at BOTTOM-RIGHT (Esc cancels)…');
+  msg('A dim overlay will appear — drag a box around the bar (right-click or Esc cancels)…');
   const r=await (await fetch('/api/calibrate?name='+encodeURIComponent(n),{method:'POST'})).json();
   if(r.ok){msg('saved '+r.name+': '+r.left+','+r.top+' '+r.width+'x'+r.height); await load();}
   else msg('error: '+r.error,true);

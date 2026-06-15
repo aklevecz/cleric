@@ -35,7 +35,7 @@ it with a command from a terminal:
 
 ```
 cleric ui [port]         open the web control panel (default http://127.0.0.1:7860)
-cleric calibrate <guy>   point at a health bar's two corners to save a box
+cleric calibrate <guy>   drag a box over a health bar to save it (add 'corners' for F8 mode)
 cleric read [guy]        capture a configured HP bar and print its fill %
 cleric run               run the loops (Ctrl+Alt+P pause, Ctrl+Alt+Q quit)
 ```
@@ -56,11 +56,13 @@ it, alt-tab to the game, tap F8 at each corner), read a bar's fill %, and
 **Start / Stop / Pause** the loops. Set `CLERIC_NO_BROWSER=1` to skip
 auto-opening the browser.
 
-- `calibrate` replaces the Python draw-a-box tool — no Python needed. With the
-  bar visible, move the mouse to its **top-left** corner and tap **F8**, then its
-  **bottom-right** corner and tap **F8** (Esc cancels). The box is saved to
-  `config.json`, set as the default guy, and read back so you can confirm the
-  fill %. Keys are read globally, so the game can stay focused.
+- `calibrate` replaces the Python draw-a-box tool — no Python needed. A dim
+  fullscreen overlay appears; **drag a rectangle** around the health bar and
+  release (right-click or Esc cancels). The box is saved to `config.json`, set
+  as the default guy, and read back so you can confirm the fill %.
+  - `cleric calibrate <guy> corners` uses the alternative F8 two-corner method
+    (point at top-left, tap F8, point at bottom-right, tap F8) — handy if the
+    overlay won't show (e.g. a fullscreen-exclusive game).
 - `read` is the verify check: it captures the named bounding box (default:
   `default_guy`) and prints the red-fill %.
 - `run` starts both reactive loops and runs until you quit:
@@ -96,7 +98,8 @@ auto-opening the browser.
 ## Implemented
 
 - Built-in **web UI** (`ui`) — a std-only HTTP server, no framework/crates.
-- Bounding-box calibration (`calibrate`) — no Python needed to set up boxes.
+- Bounding-box calibration (`calibrate`) — drag-a-box overlay (native Win32),
+  or F8 two-corner mode; no Python needed to set up boxes.
 - Global hotkeys for `run` (pause/resume + quit).
 - Mouse bindings: `mouse.scroll(x,y)` and `mouse.click()` (cursor centered first,
   scroll capped so a huge value doesn't fire thousands of events).

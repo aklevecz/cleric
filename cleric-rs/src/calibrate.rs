@@ -70,15 +70,10 @@ pub fn capture_box() -> Option<(i32, i32, i32, i32)> {
     Some((left, top, width, height))
 }
 
-pub fn calibrate(name: &str) {
-    println!("Calibrating bounding box '{name}'.");
-    println!("Make sure the health bar is visible on screen.");
-    println!();
-    let Some((left, top, width, height)) = capture_box() else {
-        println!("cancelled.");
-        return;
-    };
-
+/// Save a captured rectangle as a named bounding box, make it the default guy,
+/// and read it back. Returns the live fill % on success. Shared by the CLI
+/// `calibrate` command (drag overlay or F8 corners) and the web UI.
+pub fn save_box(name: &str, left: i32, top: i32, width: i32, height: i32) -> Result<f32, String> {
     let mut cfg = config::load();
     cfg.bounding_boxes.insert(
         name.to_string(),
@@ -90,19 +85,12 @@ pub fn calibrate(name: &str) {
         },
     );
     cfg.default_guy = name.to_string();
-    match config::save(&cfg) {
-        Ok(()) => println!("saved '{name}': left={left} top={top} width={width} height={height} (now the default guy)"),
-        Err(e) => {
-            eprintln!("failed to save config: {e}");
-            return;
-        }
-    }
+    config::save(&cfg).map_err(|e| e.to_string())?;
 
     // Immediate read-back so you can confirm the box lines up.
-    if let Some(cap) = Capturer::new() {
-        if let Some(buf) = cap.grab(left, top, width, height) {
-            let pct = red_percentage(&buf, width, height);
-            println!("read-back: {name} reads {pct:.1}% full right now.");
-        }
-    }
+    let pct = Capturer::new()
+        .and_then(|cap| cap.grab(left, top, width, height))
+        .map(|buf| red_percentage(&buf, width, height))
+        .unwrap_or(0.0);
+    Ok(pct)
 }
