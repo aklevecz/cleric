@@ -16,6 +16,7 @@ use std::time::Duration;
 use crate::capture::{red_percentage, Capturer};
 use crate::config::Config;
 use crate::input;
+use crate::log::log;
 
 /// One HP reading for a configured guy (0.0 if no box / capture failed).
 fn pct_for(cap: &Capturer, cfg: &Config, name: &str) -> f32 {
@@ -33,16 +34,16 @@ pub fn run_health_loop(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBoo
         let cap = match Capturer::new() {
             Some(c) => c,
             None => {
-                eprintln!("[health] could not acquire screen DC");
+                log("[health] could not acquire screen DC");
                 return;
             }
         };
         let name = cfg.default_guy.clone();
         if name.is_empty() {
-            eprintln!("[health] no default_guy configured");
+            log("[health] no default_guy configured");
             return;
         }
-        println!("[health] watching {name}, heal below {:.0}%", cfg.heal_threshold);
+        log(format!("[health] watching {name}, heal below {:.0}%", cfg.heal_threshold));
         // Require two consecutive below-threshold reads before healing, so a
         // single glitchy capture frame can't trigger a spurious heal.
         let mut low_streak = 0u32;
@@ -52,8 +53,10 @@ pub fn run_health_loop(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBoo
                 continue;
             }
             let pct = pct_for(&cap, &cfg, &name);
-            // Print every tick so you can see it's alive and what it reads.
-            println!("[health] {name}: {pct:.1}%");
+            // The live % is shown in the UI readout; only log every tick when verbose.
+            if cfg.verbose {
+                log(format!("[health] {name}: {pct:.1}%"));
+            }
 
             if pct > 0.0 && pct < cfg.heal_threshold {
                 low_streak += 1;
@@ -63,12 +66,12 @@ pub fn run_health_loop(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBoo
 
             if low_streak >= 2 {
                 low_streak = 0;
-                println!("[health] {name} low ({pct:.1}%) -> heal ({})", cfg.heal_binding);
+                log(format!("[health] {name} low ({pct:.1}%) -> heal ({})", cfg.heal_binding));
                 input::press_binding(&cfg.heal_binding);
                 sleep(Duration::from_secs_f32(cfg.heal_duck_check_time));
                 let again = pct_for(&cap, &cfg, &name);
                 if again > cfg.heal_threshold {
-                    println!("[health] recovered to {again:.1}% -> duck-cancel");
+                    log(format!("[health] recovered to {again:.1}% -> duck-cancel"));
                     input::duck();
                 }
             }
@@ -87,13 +90,13 @@ pub fn run_log_tail(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBool>)
         thread::spawn(move || {
             let cap = Capturer::new();
             while rx.recv().is_ok() {
-                println!("[ch] casting Complete Heal ({})", cfg_worker.ch_binding);
+                log(format!("[ch] casting Complete Heal ({})", cfg_worker.ch_binding));
                 input::press_binding(&cfg_worker.ch_binding);
                 sleep(Duration::from_secs_f32(9.5));
                 if let Some(ref c) = cap {
                     let pct = pct_for(c, &cfg_worker, &cfg_worker.default_guy);
                     if pct > cfg_worker.ch_threshold {
-                        println!("[ch] target at {pct:.1}% -> duck-cancel");
+                        log(format!("[ch] target at {pct:.1}% -> duck-cancel"));
                         input::duck();
                     }
                 }
@@ -105,12 +108,12 @@ pub fn run_log_tail(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBool>)
         let mut file = match File::open(&cfg.log_file) {
             Ok(f) => f,
             Err(e) => {
-                eprintln!("[tail] cannot open log '{}': {e}", cfg.log_file);
+                log(format!("[tail] cannot open log '{}': {e}", cfg.log_file));
                 return;
             }
         };
         let mut pos = file.seek(SeekFrom::End(0)).unwrap_or(0);
-        println!("[tail] watching {}", cfg.log_file);
+        log(format!("[tail] watching {}", cfg.log_file));
 
         let word_bindings: Vec<(String, String)> = cfg
             .word_bindings
@@ -130,14 +133,14 @@ pub fn run_log_tail(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBool>)
                         for line in text.lines() {
                             let low = line.to_lowercase();
                             if cfg.verbose {
-                                println!("{line}");
+                                log(format!("[log] {line}"));
                             }
                             if paused.load(Ordering::Relaxed) {
                                 continue; // consumed (no replay on resume), but don't act
                             }
                             for (word, binding) in &word_bindings {
                                 if low.contains(word) {
-                                    println!("[trigger] '{word}' -> {binding}");
+                                    log(format!("[trigger] '{word}' -> {binding}"));
                                     input::press_binding(binding);
                                     break;
                                 }
@@ -146,7 +149,7 @@ pub fn run_log_tail(cfg: Config, stop: Arc<AtomicBool>, paused: Arc<AtomicBool>)
                                 if low.contains(w) {
                                     if w.contains("go") {
                                         if tx.try_send(()).is_err() {
-                                            println!("[ch] already casting, skipping trigger");
+                                            log("[ch] already casting, skipping trigger");
                                         }
                                     }
                                     break;

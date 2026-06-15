@@ -8,6 +8,7 @@ mod capture;
 mod config;
 mod draw;
 mod input;
+mod log;
 mod watch;
 mod web;
 

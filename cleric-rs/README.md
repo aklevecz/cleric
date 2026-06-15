@@ -50,11 +50,16 @@ config.
 
 `cleric ui` starts a tiny built-in HTTP server (hand-rolled on `std::net` — no
 web framework, no extra crates) and opens your browser at
-`http://127.0.0.1:7860`. From there you can edit all settings, list/add bounding
-boxes (the **Calibrate** button drives the same F8 two-corner capture — click
-it, alt-tab to the game, tap F8 at each corner), read a bar's fill %, and
-**Start / Stop / Pause** the loops. Set `CLERIC_NO_BROWSER=1` to skip
-auto-opening the browser.
+`http://127.0.0.1:7860`. The panel shows:
+
+- a **live HP readout + bar** for the default guy (polled ~1×/s),
+- **Start / Stop / Pause** controls with a status pill,
+- a **live activity log** — everything the bot does (heals, duck-cancels, CH
+  casts, triggers, errors) streams here, so you never need the terminal,
+- all **settings**, and **Calibrate** (drag-a-box overlay) to add/replace boxes.
+
+Set `CLERIC_NO_BROWSER=1` to skip auto-opening the browser. Tick **verbose** to
+also stream every HP read and raw matched log line.
 
 - `calibrate` replaces the Python draw-a-box tool — no Python needed. A dim
   fullscreen overlay appears; **drag a rectangle** around the health bar and
