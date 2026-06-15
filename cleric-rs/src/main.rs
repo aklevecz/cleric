@@ -8,6 +8,7 @@ mod capture;
 mod config;
 mod input;
 mod watch;
+mod web;
 
 use std::mem::zeroed;
 use std::ptr::null_mut;
@@ -122,10 +123,22 @@ fn main() {
             let _ = h_tail.join();
         }
 
+        // Built-in web UI (no framework — plain std HTTP server).
+        "ui" => {
+            let port: u16 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(7860);
+            if std::env::var_os("CLERIC_NO_BROWSER").is_none() {
+                let _ = std::process::Command::new("cmd")
+                    .args(["/C", "start", "", &format!("http://127.0.0.1:{port}")])
+                    .spawn();
+            }
+            web::serve(port);
+        }
+
         _ => {
             println!("cleric-rs — native EQ healer bot");
             println!();
             println!("usage:");
+            println!("  cleric ui [port]        open the web control panel (default port 7860)");
             println!("  cleric calibrate <guy>  point at a health bar's two corners to save a box");
             println!("  cleric read [guy]       capture a configured HP bar and print its fill %");
             println!("  cleric run              run the loops (Ctrl+Alt+P pause, Ctrl+Alt+Q quit)");

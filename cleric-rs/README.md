@@ -34,15 +34,27 @@ just prints this help and the window closes instantly (that's not a crash). Run
 it with a command from a terminal:
 
 ```
+cleric ui [port]         open the web control panel (default http://127.0.0.1:7860)
 cleric calibrate <guy>   point at a health bar's two corners to save a box
 cleric read [guy]        capture a configured HP bar and print its fill %
 cleric run               run the loops (Ctrl+Alt+P pause, Ctrl+Alt+Q quit)
 ```
 
 Prefer to double-click? Use the launchers in this folder — they run the command
-and keep the window open: **`cleric-calibrate.bat`**, **`cleric-read.bat`**,
-**`cleric-run.bat`**. They also point `CLERIC_CONFIG` at the repo's
-`config.json` (one level up) so the native tool shares the Python config.
+and keep the window open: **`cleric-ui.bat`**, **`cleric-calibrate.bat`**,
+**`cleric-read.bat`**, **`cleric-run.bat`**. They also point `CLERIC_CONFIG` at
+the repo's `config.json` (one level up) so the native tool shares the Python
+config.
+
+### Web UI
+
+`cleric ui` starts a tiny built-in HTTP server (hand-rolled on `std::net` — no
+web framework, no extra crates) and opens your browser at
+`http://127.0.0.1:7860`. From there you can edit all settings, list/add bounding
+boxes (the **Calibrate** button drives the same F8 two-corner capture — click
+it, alt-tab to the game, tap F8 at each corner), read a bar's fill %, and
+**Start / Stop / Pause** the loops. Set `CLERIC_NO_BROWSER=1` to skip
+auto-opening the browser.
 
 - `calibrate` replaces the Python draw-a-box tool — no Python needed. With the
   bar visible, move the mouse to its **top-left** corner and tap **F8**, then its
@@ -83,14 +95,15 @@ and keep the window open: **`cleric-calibrate.bat`**, **`cleric-read.bat`**,
 
 ## Implemented
 
+- Built-in **web UI** (`ui`) — a std-only HTTP server, no framework/crates.
 - Bounding-box calibration (`calibrate`) — no Python needed to set up boxes.
 - Global hotkeys for `run` (pause/resume + quit).
 - Mouse bindings: `mouse.scroll(x,y)` and `mouse.click()` (cursor centered first,
   scroll capped so a huge value doesn't fire thousands of events).
 - DPI-aware, so calibration cursor coords and GDI capture use the same pixels.
 
-## Not yet ported (intentionally)
+This is now full feature parity with the Python project, in one ~0.4 MB exe.
 
-- The gradio web UI — config is the shared `config.json`, now fully editable via
-  `calibrate` + hand-edits, so the browser UI is optional.
+## Not ported (by design)
+
 - Login automation — already standalone in the Python `boot/` folder.

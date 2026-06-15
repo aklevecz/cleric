@@ -47,21 +47,16 @@ fn wait_for_corner() -> Option<(i32, i32)> {
     }
 }
 
-pub fn calibrate(name: &str) {
-    println!("Calibrating bounding box '{name}'.");
-    println!("Make sure the health bar is visible on screen.");
-    println!();
+/// Capture a rectangle by pointing at its two corners (F8 each, Esc cancels).
+/// Returns (left, top, width, height) in screen pixels. Shared by the CLI
+/// `calibrate` command and the web UI. Prints console hints (harmless if driven
+/// from the browser).
+pub fn capture_box() -> Option<(i32, i32, i32, i32)> {
     println!("1) Move the mouse to the bar's TOP-LEFT corner, then tap F8  (Esc to cancel)");
-    let Some((x1, y1)) = wait_for_corner() else {
-        println!("cancelled.");
-        return;
-    };
+    let (x1, y1) = wait_for_corner()?;
     println!("   top-left     = ({x1}, {y1})");
     println!("2) Move the mouse to the bar's BOTTOM-RIGHT corner, then tap F8");
-    let Some((x2, y2)) = wait_for_corner() else {
-        println!("cancelled.");
-        return;
-    };
+    let (x2, y2) = wait_for_corner()?;
     println!("   bottom-right = ({x2}, {y2})");
 
     let left = x1.min(x2);
@@ -70,8 +65,19 @@ pub fn calibrate(name: &str) {
     let height = (y1 - y2).abs();
     if width < 2 || height < 2 {
         eprintln!("box is too small ({width}x{height}) — try again.");
-        return;
+        return None;
     }
+    Some((left, top, width, height))
+}
+
+pub fn calibrate(name: &str) {
+    println!("Calibrating bounding box '{name}'.");
+    println!("Make sure the health bar is visible on screen.");
+    println!();
+    let Some((left, top, width, height)) = capture_box() else {
+        println!("cancelled.");
+        return;
+    };
 
     let mut cfg = config::load();
     cfg.bounding_boxes.insert(
