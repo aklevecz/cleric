@@ -29,11 +29,20 @@ they just need a `config.json` next to it (or point `CLERIC_CONFIG` at one).
 
 ## Use
 
+`cleric.exe` is a **command-line** tool — double-clicking it with no command
+just prints this help and the window closes instantly (that's not a crash). Run
+it with a command from a terminal:
+
 ```
 cleric calibrate <guy>   point at a health bar's two corners to save a box
 cleric read [guy]        capture a configured HP bar and print its fill %
 cleric run               run the loops (Ctrl+Alt+P pause, Ctrl+Alt+Q quit)
 ```
+
+Prefer to double-click? Use the launchers in this folder — they run the command
+and keep the window open: **`cleric-calibrate.bat`**, **`cleric-read.bat`**,
+**`cleric-run.bat`**. They also point `CLERIC_CONFIG` at the repo's
+`config.json` (one level up) so the native tool shares the Python config.
 
 - `calibrate` replaces the Python draw-a-box tool — no Python needed. With the
   bar visible, move the mouse to its **top-left** corner and tap **F8**, then its
